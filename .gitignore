@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment variables (CONTÉM API KEYS!)
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+nohup.out
+
+# PID files
+/tmp/capisco-pids.txt
+
+# Lock files (keep only root)
+frontend/package-lock.json
+backend/package-lock.json
