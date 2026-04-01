@@ -12,7 +12,7 @@ interface SpeechRecognitionErrorEvent extends Event {
   message: string
 }
 
-export function useSpeechRecognition(): SpeechRecognitionHook {
+export function useSpeechRecognition(lang: string = 'pt-BR'): SpeechRecognitionHook {
   const [isListening, setIsListening] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -28,13 +28,13 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 
     if (!SpeechRecognition) {
-      setError('Reconhecimento de voz não suportado neste navegador. Use Chrome.')
+      setError('Speech recognition not supported in this browser. Use Chrome.')
       return
     }
 
     const recognition = new SpeechRecognition()
-    recognition.lang = 'pt-BR'
-    recognition.continuous = true
+    recognition.lang = lang
+    recognition.continuous = false
     recognition.interimResults = true
     recognition.maxAlternatives = 1
 
@@ -43,6 +43,8 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
     }
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
+      // With continuous=false, there's typically one result.
+      // We still handle multiple results defensively.
       let finalText = ''
       let interimText = ''
 
@@ -51,25 +53,25 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
         if (result.isFinal) {
           finalText += result[0].transcript
         } else {
-          interimText += result[0].transcript
+          interimText = result[0].transcript
         }
       }
 
-      // Always keep the latest final transcript
       if (finalText) {
-        finalTranscriptRef.current = finalText
+        finalTranscriptRef.current = finalText.trim()
+        setTranscript(finalText.trim())
+      } else if (interimText) {
+        setTranscript(interimText.trim())
       }
-
-      setTranscript(finalText || interimText || finalTranscriptRef.current)
     }
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (event.error === 'no-speech') {
-        setError('Nenhuma fala detectada. Tente novamente.')
+        setError('No speech detected. Try again.')
       } else if (event.error === 'not-allowed') {
-        setError('Permissão de microfone negada. Permita o acesso ao microfone.')
+        setError('Microphone permission denied. Please allow access.')
       } else if (event.error !== 'aborted') {
-        setError(`Erro no reconhecimento: ${event.error}`)
+        setError(`Recognition error: ${event.error}`)
       }
     }
 
@@ -83,7 +85,7 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
 
     recognitionRef.current = recognition
     recognition.start()
-  }, [])
+  }, [lang])
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {

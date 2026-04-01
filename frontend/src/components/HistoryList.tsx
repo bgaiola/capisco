@@ -17,8 +17,8 @@ export default function HistoryList({
         <svg className="w-12 h-12 sm:w-16 sm:h-16 mb-3 sm:mb-4 opacity-30" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
-        <p className="font-display text-lg sm:text-xl">Nenhuma tradução ainda</p>
-        <p className="text-xs sm:text-sm mt-2">Use o modo voz ou texto para começar</p>
+        <p className="font-display text-lg sm:text-xl">No translations yet</p>
+        <p className="text-xs sm:text-sm mt-2">Use voice or text mode to get started</p>
       </div>
     )
   }

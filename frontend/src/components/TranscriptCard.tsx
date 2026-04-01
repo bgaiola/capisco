@@ -1,26 +1,34 @@
 import type { Translation } from '../types'
+import type { Language } from '../types/languages'
 
 interface TranscriptCardProps {
   translation: Translation
   onPlayAudio?: () => void
   isPlaying?: boolean
+  nativeLang?: Language
+  targetLang?: Language
 }
 
 export default function TranscriptCard({
   translation,
   onPlayAudio,
   isPlaying = false,
+  nativeLang,
+  targetLang,
 }: TranscriptCardProps) {
   const handleCopy = () => {
     navigator.clipboard.writeText(translation.translatedText)
   }
 
+  const nativeLabel = nativeLang ? `${nativeLang.flag} ${nativeLang.label}` : 'Original'
+  const targetLabel = targetLang ? `${targetLang.flag} ${targetLang.label}` : 'Translation'
+
   return (
     <div className="animate-fade-up bg-white/60 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-warm-gray-light/30 shadow-sm">
-      {/* Original Portuguese */}
+      {/* Original */}
       <div className="mb-3 sm:mb-4">
         <span className="font-mono text-[10px] sm:text-xs text-warm-gray uppercase tracking-wider">
-          Português
+          {nativeLabel}
         </span>
         <p className="mt-1 font-body text-ink text-base sm:text-lg leading-relaxed">
           {translation.originalText}
@@ -30,10 +38,10 @@ export default function TranscriptCard({
       {/* Divider */}
       <div className="border-t border-warm-gray-light/30 my-3 sm:my-4" />
 
-      {/* Italian Translation */}
+      {/* Translation */}
       <div className="mb-3 sm:mb-4">
         <span className="font-mono text-[10px] sm:text-xs text-terracotta uppercase tracking-wider">
-          Italiano
+          {targetLabel}
         </span>
         <p className="mt-1 font-display text-ink text-xl sm:text-2xl leading-relaxed italic">
           {translation.translatedText}
@@ -62,14 +70,14 @@ export default function TranscriptCard({
             {isPlaying ? (
               <>
                 <AudioBars />
-                Reproduzindo...
+                Playing...
               </>
             ) : (
               <>
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
-                Ouvir
+                Listen
               </>
             )}
           </button>
@@ -83,7 +91,7 @@ export default function TranscriptCard({
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
-          Copiar
+          Copy
         </button>
       </div>
     </div>

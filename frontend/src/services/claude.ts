@@ -1,11 +1,15 @@
 import type { ClaudeResponse } from '../types'
 import { apiFetch } from './api'
 
-export async function translateText(text: string): Promise<ClaudeResponse> {
+export async function translateText(
+  text: string,
+  from: string = 'pt',
+  to: string = 'it',
+): Promise<ClaudeResponse> {
   const response = await apiFetch('/api/translate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, from, to }),
   })
 
   if (!response.ok) {

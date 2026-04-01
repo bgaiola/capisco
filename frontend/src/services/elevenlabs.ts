@@ -41,9 +41,9 @@ export async function synthesizeSpeech(
 }
 
 /**
- * Fallback: use Web Speech Synthesis API with an Italian voice
+ * Fallback: use Web Speech Synthesis API with a voice matching the target language
  */
-export function speakWithFallback(text: string): Promise<void> {
+export function speakWithFallback(text: string, lang: string = 'it-IT'): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
       reject(new Error('Speech synthesis não suportado'))
@@ -51,13 +51,14 @@ export function speakWithFallback(text: string): Promise<void> {
     }
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'it-IT'
+    utterance.lang = lang
     utterance.rate = 0.9
 
-    // Try to find an Italian voice
+    // Try to find a voice matching the target language
+    const langPrefix = lang.split('-')[0]
     const voices = speechSynthesis.getVoices()
-    const italianVoice = voices.find((v) => v.lang.startsWith('it'))
-    if (italianVoice) utterance.voice = italianVoice
+    const matchingVoice = voices.find((v) => v.lang === lang) || voices.find((v) => v.lang.startsWith(langPrefix))
+    if (matchingVoice) utterance.voice = matchingVoice
 
     utterance.onend = () => resolve()
     utterance.onerror = () => reject(new Error('Erro na síntese de voz'))

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import VoiceOnboarding from './components/VoiceOnboarding'
+import LanguageSelector from './components/LanguageSelector'
 import MicButton from './components/MicButton'
 import TranscriptCard from './components/TranscriptCard'
 import AudioVisualizer from './components/AudioVisualizer'
@@ -8,12 +9,24 @@ import { useSpeechRecognition } from './hooks/useSpeechRecognition'
 import { useAudioPlayer } from './hooks/useAudioPlayer'
 import { translateText } from './services/claude'
 import { synthesizeSpeech, speakWithFallback } from './services/elevenlabs'
+import {
+  loadLanguagePair,
+  saveLanguagePair,
+  type LanguagePair,
+} from './types/languages'
 import type { Translation, AppTab, TranslationStep, VoiceProfile } from './types'
 
 function App() {
+  // Language pair
+  const [langPair, setLangPair] = useState<LanguagePair>(loadLanguagePair)
+  const [showLangSelector, setShowLangSelector] = useState(() => {
+    // Show language selector on first visit (no saved preference)
+    return !localStorage.getItem('capisco_native_lang')
+  })
+
   // Voice profile
   const [voiceProfile, setVoiceProfile] = useState<VoiceProfile | null>(null)
-  const [showOnboarding, setShowOnboarding] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Tabs
   const [activeTab, setActiveTab] = useState<AppTab>('voice')
@@ -29,9 +42,9 @@ function App() {
   const [history, setHistory] = useState<Translation[]>([])
   const [playingId, setPlayingId] = useState<string | null>(null)
 
-  // Hooks
+  // Hooks — pass native language's speech code for recognition
   const { isListening, transcript, error: speechError, startListening, stopListening, resetTranscript } =
-    useSpeechRecognition()
+    useSpeechRecognition(langPair.native.speechCode)
   const { isPlaying, play } = useAudioPlayer()
 
   // Load voice profile and history from localStorage
@@ -41,7 +54,6 @@ function App() {
       try {
         const profile = JSON.parse(saved) as VoiceProfile
         setVoiceProfile(profile)
-        setShowOnboarding(false)
       } catch {
         // Invalid data
       }
@@ -55,12 +67,18 @@ function App() {
         // Invalid data
       }
     }
-
-    // Check if user skipped onboarding
-    if (!saved && localStorage.getItem('capisco_skipped_voice')) {
-      setShowOnboarding(false)
-    }
   }, [])
+
+  // After language selection, check if we need voice onboarding
+  useEffect(() => {
+    if (!showLangSelector) {
+      const saved = localStorage.getItem('capisco_voice')
+      const skipped = localStorage.getItem('capisco_skipped_voice')
+      if (!saved && !skipped) {
+        setShowOnboarding(true)
+      }
+    }
+  }, [showLangSelector])
 
   // Save history to localStorage
   useEffect(() => {
@@ -68,6 +86,12 @@ function App() {
       localStorage.setItem('capisco_history', JSON.stringify(history))
     }
   }, [history])
+
+  const handleLangConfirm = (pair: LanguagePair) => {
+    setLangPair(pair)
+    saveLanguagePair(pair)
+    setShowLangSelector(false)
+  }
 
   const handleOnboardingComplete = (voiceId: string) => {
     const profile: VoiceProfile = {
@@ -104,7 +128,7 @@ function App() {
       try {
         // Step 2: Translate
         setStep('translating')
-        const result = await translateText(text)
+        const result = await translateText(text, langPair.native.code, langPair.target.code)
 
         const translation: Translation = {
           id: Date.now().toString(),
@@ -128,14 +152,14 @@ function App() {
             // No cloned voice — use Web Speech fallback
             setUsedFallback(true)
             setStep('playing')
-            await speakWithFallback(result.traducao)
+            await speakWithFallback(result.traducao, langPair.target.ttsCode)
           }
         } catch {
           // Fallback to Web Speech Synthesis
           setUsedFallback(true)
           setStep('playing')
           try {
-            await speakWithFallback(result.traducao)
+            await speakWithFallback(result.traducao, langPair.target.ttsCode)
           } catch {
             // Even fallback failed
           }
@@ -145,11 +169,11 @@ function App() {
         setHistory((prev) => [translation, ...prev])
         setStep('done')
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Erro desconhecido')
+        setErrorMsg(err instanceof Error ? err.message : 'Unknown error')
         setStep('error')
       }
     },
-    [voiceProfile, play],
+    [voiceProfile, play, langPair],
   )
 
   // Handle voice mode: when speech recognition ends with a transcript
@@ -162,7 +186,6 @@ function App() {
   const handleMicClick = () => {
     if (isListening) {
       stopListening()
-      // step will transition via useEffect above when isListening becomes false
       setStep('transcribing')
     } else {
       resetTranscript()
@@ -193,17 +216,16 @@ function App() {
       play(translation.audioUrl)
       setTimeout(() => setPlayingId(null), 3000)
     } else if (voiceProfile) {
-      // Re-synthesize with cloned voice
       synthesizeSpeech(translation.translatedText, voiceProfile.voiceId)
         .then((blob) => {
           play(blob)
           setTimeout(() => setPlayingId(null), 3000)
         })
         .catch(() => {
-          speakWithFallback(translation.translatedText).finally(() => setPlayingId(null))
+          speakWithFallback(translation.translatedText, langPair.target.ttsCode).finally(() => setPlayingId(null))
         })
     } else {
-      speakWithFallback(translation.translatedText).finally(() => setPlayingId(null))
+      speakWithFallback(translation.translatedText, langPair.target.ttsCode).finally(() => setPlayingId(null))
     }
   }
 
@@ -214,15 +236,20 @@ function App() {
     } else if (voiceProfile) {
       synthesizeSpeech(currentTranslation.translatedText, voiceProfile.voiceId)
         .then((blob) => play(blob))
-        .catch(() => speakWithFallback(currentTranslation.translatedText))
+        .catch(() => speakWithFallback(currentTranslation.translatedText, langPair.target.ttsCode))
     } else {
-      speakWithFallback(currentTranslation.translatedText)
+      speakWithFallback(currentTranslation.translatedText, langPair.target.ttsCode)
     }
   }
 
-  // Show onboarding if no voice profile
+  // Show language selector first
+  if (showLangSelector) {
+    return <LanguageSelector pair={langPair} onConfirm={handleLangConfirm} />
+  }
+
+  // Show onboarding if needed
   if (showOnboarding) {
-    return <VoiceOnboarding onComplete={handleOnboardingComplete} onSkip={handleSkipOnboarding} />
+    return <VoiceOnboarding onComplete={handleOnboardingComplete} onSkip={handleSkipOnboarding} targetLang={langPair.target} />
   }
 
   return (
@@ -230,28 +257,29 @@ function App() {
       {/* Header — compact on mobile */}
       <header className="px-4 sm:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:pb-4 text-center shrink-0">
         <h1 className="font-display text-3xl sm:text-4xl text-ink tracking-tight">CAPISCO</h1>
-        <p className="font-mono text-[10px] sm:text-xs text-warm-gray mt-0.5">português → italiano</p>
+        <button
+          onClick={() => setShowLangSelector(true)}
+          className="font-mono text-[10px] sm:text-xs text-warm-gray mt-0.5 hover:text-terracotta transition-colors cursor-pointer"
+        >
+          {langPair.native.flag} {langPair.native.label} → {langPair.target.flag} {langPair.target.label}
+        </button>
         <div className="flex items-center justify-center gap-2 mt-1">
           <span className={`inline-block w-1.5 h-1.5 rounded-full ${voiceProfile ? 'bg-green-500' : 'bg-warm-gray-light'}`} />
           <span className="font-mono text-[10px] text-warm-gray">
-            {voiceProfile ? 'Voz clonada ativa' : 'Voz do sistema'}
+            {voiceProfile ? 'Cloned voice active' : 'System voice'}
           </span>
           <button
             onClick={handleResetVoice}
             className="font-mono text-[10px] text-terracotta/60 hover:text-terracotta underline underline-offset-2 cursor-pointer ml-1"
           >
-            {voiceProfile ? 'resetar' : 'configurar voz'}
+            {voiceProfile ? 'reset' : 'set up voice'}
           </button>
         </div>
       </header>
 
       {/* Tab Bar — top on desktop, bottom fixed on mobile */}
       <nav className="hidden sm:flex px-6 gap-1 mb-6 shrink-0">
-        {[
-          { id: 'voice' as AppTab, label: 'Voz', icon: '🎤' },
-          { id: 'text' as AppTab, label: 'Texto', icon: '✏️' },
-          { id: 'history' as AppTab, label: 'Histórico', icon: '📜' },
-        ].map((tab) => (
+        {TAB_ITEMS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -301,9 +329,9 @@ function App() {
 
             <p className="text-xs sm:text-sm text-warm-gray text-center mb-6 sm:mb-8">
               {isListening
-                ? 'Ouvindo... toque para parar'
+                ? 'Listening... tap to stop'
                 : step === 'idle' || step === 'done' || step === 'error'
-                  ? 'Toque no microfone e fale em português'
+                  ? `Tap the mic and speak in ${langPair.native.label}`
                   : ''}
             </p>
 
@@ -323,7 +351,7 @@ function App() {
             {usedFallback && (
               <div className="w-full bg-gold/10 border border-gold/30 rounded-xl p-3 sm:p-4 mb-4 animate-fade-up">
                 <p className="text-gold text-xs sm:text-sm">
-                  ⚠️ Não foi possível usar sua voz clonada. Usando voz do sistema.
+                  ⚠️ Could not use cloned voice. Using system voice.
                 </p>
               </div>
             )}
@@ -335,6 +363,8 @@ function App() {
                   translation={currentTranslation}
                   onPlayAudio={handlePlayCurrent}
                   isPlaying={isPlaying}
+                  nativeLang={langPair.native}
+                  targetLang={langPair.target}
                 />
               </div>
             )}
@@ -349,20 +379,20 @@ function App() {
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 onKeyDown={handleTextKeyDown}
-                placeholder="Digite uma frase em português..."
+                placeholder={`Type a phrase in ${langPair.native.label}...`}
                 rows={3}
                 className="w-full bg-transparent resize-none font-body text-ink placeholder-warm-gray-light focus:outline-none text-base sm:text-lg"
               />
               <div className="flex items-center justify-between mt-2 pt-2 border-t border-warm-gray-light/20">
                 <span className="text-[10px] sm:text-xs text-warm-gray-light font-mono hidden sm:inline">
-                  {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}+Enter para enviar
+                  {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}+Enter
                 </span>
                 <button
                   onClick={handleTextSubmit}
                   disabled={!textInput.trim() || step === 'translating' || step === 'synthesizing'}
                   className="px-5 sm:px-6 py-2.5 sm:py-2 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta-dark active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer sm:ml-auto w-full sm:w-auto touch-target"
                 >
-                  Traduzir
+                  Translate
                 </button>
               </div>
             </div>
@@ -381,7 +411,7 @@ function App() {
             {usedFallback && (
               <div className="bg-gold/10 border border-gold/30 rounded-xl p-3 sm:p-4 mb-4 animate-fade-up">
                 <p className="text-gold text-xs sm:text-sm">
-                  ⚠️ Não foi possível usar sua voz clonada. Usando voz do sistema.
+                  ⚠️ Could not use cloned voice. Using system voice.
                 </p>
               </div>
             )}
@@ -392,6 +422,8 @@ function App() {
                 translation={currentTranslation}
                 onPlayAudio={handlePlayCurrent}
                 isPlaying={isPlaying}
+                nativeLang={langPair.native}
+                targetLang={langPair.target}
               />
             )}
           </div>
@@ -410,11 +442,7 @@ function App() {
       {/* Bottom Tab Bar — mobile only, fixed */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-crema/90 backdrop-blur-md border-t border-warm-gray-light/20 safe-bottom z-50">
         <div className="flex max-w-lg mx-auto">
-          {[
-            { id: 'voice' as AppTab, label: 'Voz', icon: '🎤' },
-            { id: 'text' as AppTab, label: 'Texto', icon: '✏️' },
-            { id: 'history' as AppTab, label: 'Histórico', icon: '📜' },
-          ].map((tab) => (
+          {TAB_ITEMS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -434,16 +462,22 @@ function App() {
   )
 }
 
+const TAB_ITEMS: { id: AppTab; label: string; icon: string }[] = [
+  { id: 'voice', label: 'Voice', icon: '🎤' },
+  { id: 'text', label: 'Text', icon: '✏️' },
+  { id: 'history', label: 'History', icon: '📜' },
+]
+
 function StatusBadge({ step }: { step: TranslationStep }) {
   const labels: Record<TranslationStep, string> = {
     idle: '',
-    recording: '🎙️ Gravando...',
-    transcribing: '📝 Transcrevendo...',
-    translating: '🔄 Traduzindo...',
-    synthesizing: '🎵 Sintetizando voz...',
-    playing: '🔊 Reproduzindo...',
-    done: '✅ Pronto!',
-    error: '❌ Erro',
+    recording: '🎙️ Recording...',
+    transcribing: '📝 Transcribing...',
+    translating: '🔄 Translating...',
+    synthesizing: '🎵 Synthesizing voice...',
+    playing: '🔊 Playing...',
+    done: '✅ Done!',
+    error: '❌ Error',
   }
 
   if (step === 'idle') return null
