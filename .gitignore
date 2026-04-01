@@ -28,3 +28,6 @@ nohup.out
 # Lock files (keep only root)
 frontend/package-lock.json
 backend/package-lock.json
+
+# Duplicate files
+*lock 2*

@@ -6,6 +6,10 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:backend": "cd backend && npm install && npm run build",
+    "build:all": "npm run build:frontend && npm run build:backend",
+    "start:prod": "cd backend && node dist/index.js",
     "build": "cd frontend && npm run build",
     "install:all": "cd frontend && npm install && cd ../backend && npm install"
   },

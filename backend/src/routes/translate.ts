@@ -1,5 +1,13 @@
 import { Router } from 'express'
-import translate from 'google-translate-api-x'
+import translateModule from 'google-translate-api-x'
+
+// google-translate-api-x exports differ between ESM/CJS — normalize
+const translate = (typeof translateModule === 'function'
+  ? translateModule
+  : (translateModule as any).default ?? translateModule) as (
+  text: string,
+  opts: { from: string; to: string },
+) => Promise<{ text: string }>
 
 const router = Router()
 
