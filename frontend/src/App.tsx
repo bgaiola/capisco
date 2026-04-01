@@ -249,7 +249,7 @@ function App() {
 
   // Show onboarding if needed
   if (showOnboarding) {
-    return <VoiceOnboarding onComplete={handleOnboardingComplete} onSkip={handleSkipOnboarding} targetLang={langPair.target} />
+    return <VoiceOnboarding onComplete={handleOnboardingComplete} onSkip={handleSkipOnboarding} targetLang={langPair.target} nativeLang={langPair.native} />
   }
 
   return (

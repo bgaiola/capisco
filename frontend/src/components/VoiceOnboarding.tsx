@@ -6,11 +6,56 @@ import AudioVisualizer from './AudioVisualizer'
 import MicButton from './MicButton'
 import type { Language } from '../types/languages'
 
-const SAMPLE_TEXT = `Eu tenho uma teoria: ninguém realmente sabe pedir comida em outro idioma. A gente finge. Você aponta, sorri, faz cara de quem entendeu, e torce pra não chegar um prato com tentáculos.
+/** Sample texts for voice cloning — one per native language */
+const SAMPLE_TEXTS: Record<string, string> = {
+  'pt': `Eu tenho uma teoria: ninguém realmente sabe pedir comida em outro idioma. A gente finge. Você aponta, sorri, faz cara de quem entendeu, e torce pra não chegar um prato com tentáculos.
 
 Foi exatamente o que aconteceu comigo em Nápoles. Pedi o que eu jurava ser uma margherita. Chegou uma travessa de frutos do mar que eu não conseguia nem identificar. Comi tudo, claro — porque recusar comida na Itália é praticamente um crime internacional.
 
-O melhor de aprender italiano é que cada erro vira uma história que você conta rindo no jantar. Tipo aquela vez que eu disse "sono caldo" achando que tava dizendo "estou quente" e o garçom quase caiu de rir. Aparentemente eu tinha acabado de dizer que sou um caldo. De carne, provavelmente.`
+O melhor de aprender italiano é que cada erro vira uma história que você conta rindo no jantar. Tipo aquela vez que eu disse "sono caldo" achando que tava dizendo "estou quente" e o garçom quase caiu de rir. Aparentemente eu tinha acabado de dizer que sou um caldo. De carne, provavelmente.`,
+
+  'en': `I have a theory: nobody actually knows how to order food in a foreign language. We all just pretend. You point, smile, nod like you understood, and pray they don't bring you a plate of tentacles.
+
+That's exactly what happened to me in Naples. I ordered what I was absolutely certain was a margherita pizza. What arrived was a seafood platter with creatures I couldn't even identify. I ate everything, of course — because refusing food in Italy is basically an international crime.
+
+The best part of learning a new language is that every mistake becomes a dinner party story. Like the time I told a waiter "sono caldo" thinking I was saying "I'm hot" and he nearly fell over laughing. Apparently I had just announced that I am a broth. Beef broth, probably.`,
+
+  'es': `Tengo una teoría: nadie sabe realmente pedir comida en otro idioma. Todos fingimos. Señalas, sonríes, pones cara de que entendiste, y rezas para que no te traigan un plato con tentáculos.
+
+Eso fue exactamente lo que me pasó en Nápoles. Pedí lo que juraba era una margherita. Llegó una bandeja de mariscos con criaturas que no podía ni identificar. Me lo comí todo, claro — porque rechazar comida en Italia es prácticamente un crimen internacional.
+
+Lo mejor de aprender un idioma nuevo es que cada error se convierte en una anécdota para la cena. Como aquella vez que dije "sono caldo" pensando que estaba diciendo "tengo calor" y el camarero casi se cae de la risa. Aparentemente acababa de decir que soy un caldo. De carne, probablemente.`,
+
+  'fr': `J'ai une théorie : personne ne sait vraiment commander à manger dans une langue étrangère. On fait tous semblant. Tu pointes du doigt, tu souris, tu fais comme si tu avais compris, et tu pries pour qu'on ne t'apporte pas une assiette de tentacules.
+
+C'est exactement ce qui m'est arrivé à Naples. J'ai commandé ce que je jurais être une margherita. Ce qui est arrivé, c'était un plateau de fruits de mer avec des créatures que je ne pouvais même pas identifier. J'ai tout mangé, évidemment — parce que refuser de la nourriture en Italie, c'est pratiquement un crime international.
+
+Le meilleur quand on apprend une nouvelle langue, c'est que chaque erreur devient une histoire qu'on raconte en riant au dîner. Comme la fois où j'ai dit « sono caldo » en pensant dire « j'ai chaud » et le serveur a failli tomber de rire. Apparemment, je venais de déclarer que je suis un bouillon. De bœuf, probablement.`,
+
+  'it': `Ho una teoria: nessuno sa davvero ordinare da mangiare in una lingua straniera. Facciamo tutti finta. Indichi, sorridi, fai la faccia di chi ha capito, e preghi che non ti portino un piatto di tentacoli.
+
+È esattamente quello che mi è successo a Napoli. Ho ordinato quella che giuravo fosse una margherita. È arrivato un vassoio di frutti di mare con creature che non riuscivo nemmeno a identificare. Ho mangiato tutto, ovviamente — perché rifiutare il cibo in Italia è praticamente un crimine internazionale.
+
+La cosa migliore dell'imparare una lingua nuova è che ogni errore diventa una storia da raccontare ridendo a cena. Come quella volta che ho detto "soy caliente" in Spagna pensando di dire "ho caldo" e il cameriere è quasi caduto dal ridere. A quanto pare avevo appena dichiarato di essere attraente. O una zuppa. Non sono ancora sicuro.`,
+
+  'zh': `我有一个理论：没有人真正知道怎么用外语点餐。我们都在假装。你指着菜单，微笑，装出听懂了的样子，然后祈祷他们不会端上一盘触手。
+
+这正是我在那不勒斯经历的事情。我点了我发誓是一份玛格丽特披萨的东西。结果端上来的是一大盘海鲜，里面的生物我连名字都叫不出来。我当然全吃了——因为在意大利拒绝食物基本上就是国际犯罪。
+
+学习新语言最棒的地方在于，每个错误都会变成一个让你在晚餐时笑着讲述的故事。比如那次我对服务员说"sono caldo"，以为我在说"我很热"，结果服务员差点笑到摔倒。显然我刚刚宣布自己是一碗肉汤。大概是牛肉汤吧。`,
+
+  'ru': `У меня есть теория: никто на самом деле не умеет заказывать еду на иностранном языке. Мы все притворяемся. Ты показываешь пальцем, улыбаешься, делаешь вид, что всё понял, и молишься, чтобы тебе не принесли тарелку с щупальцами.
+
+Именно это и случилось со мной в Неаполе. Я заказал то, что был абсолютно уверен — маргариту. Принесли поднос с морепродуктами и существами, которых я даже не мог опознать. Я всё съел, конечно — потому что отказаться от еды в Италии — это практически международное преступление.
+
+Лучшее в изучении нового языка — каждая ошибка превращается в историю для ужина. Как тот раз, когда я сказал официанту «sono caldo», думая, что говорю «мне жарко», и он чуть не упал от смеха. Оказывается, я только что объявил, что я — бульон. Говяжий, наверное.`,
+
+  'nl': `Ik heb een theorie: niemand weet echt hoe je eten moet bestellen in een vreemde taal. We doen allemaal alsof. Je wijst, glimlacht, doet alsof je het begrepen hebt, en bidt dat ze geen bord met tentakels brengen.
+
+Dat is precies wat mij overkwam in Napels. Ik bestelde wat ik zeker wist een margherita was. Wat er kwam was een schaal zeevruchten met wezens die ik niet eens kon identificeren. Ik at alles op, natuurlijk — want eten weigeren in Italië is praktisch een internationaal misdrijf.
+
+Het beste van een nieuwe taal leren is dat elke fout een verhaal wordt dat je lachend vertelt bij het avondeten. Zoals die keer dat ik "sono caldo" zei tegen de ober, denkend dat ik zei "ik heb het warm" en hij bijna omviel van het lachen. Blijkbaar had ik net verklaard dat ik een bouillon ben. Runderbouillon, waarschijnlijk.`,
+}
 
 /** Preview phrase per target language */
 const PREVIEW_PHRASES: Record<string, string> = {
@@ -28,14 +73,19 @@ interface VoiceOnboardingProps {
   onComplete: (voiceId: string) => void
   onSkip: () => void
   targetLang?: Language
+  nativeLang?: Language
 }
 
 type OnboardingStep = 'intro' | 'recording' | 'review' | 'cloning' | 'preview' | 'done'
 
-export default function VoiceOnboarding({ onComplete, onSkip, targetLang }: VoiceOnboardingProps) {
+export default function VoiceOnboarding({ onComplete, onSkip, targetLang, nativeLang }: VoiceOnboardingProps) {
   const [step, setStep] = useState<OnboardingStep>('intro')
   const [error, setError] = useState<string | null>(null)
   const [voiceId, setVoiceId] = useState<string | null>(null)
+
+  // Pick sample text based on native language (fallback to English)
+  const nativeCode = nativeLang?.code ?? 'pt'
+  const sampleText = SAMPLE_TEXTS[nativeCode] ?? SAMPLE_TEXTS['en'] ?? ''
 
   const { isRecording, audioBlob, duration, audioLevel, startRecording, stopRecording, resetRecording } =
     useMediaRecorder()
@@ -118,7 +168,7 @@ export default function VoiceOnboarding({ onComplete, onSkip, targetLang }: Voic
             </p>
             <div className="bg-crema rounded-xl p-4 sm:p-6 text-left max-h-48 sm:max-h-none overflow-y-auto">
               <p className="font-body text-ink leading-relaxed text-sm">
-                {SAMPLE_TEXT}
+                {sampleText}
               </p>
             </div>
           </div>
@@ -140,7 +190,7 @@ export default function VoiceOnboarding({ onComplete, onSkip, targetLang }: Voic
         <div className="animate-fade-up text-center w-full">
           <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-warm-gray-light/30 mb-6 sm:mb-8">
             <p className="font-body text-ink leading-relaxed text-xs sm:text-sm mb-4 sm:mb-6 max-h-32 sm:max-h-none overflow-y-auto">
-              {SAMPLE_TEXT}
+              {sampleText}
             </p>
           </div>
 
