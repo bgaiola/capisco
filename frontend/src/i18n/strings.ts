@@ -128,6 +128,22 @@ export interface UIStrings {
 
   // Confirmations
   confirmClearConversation: string
+  confirmRemovePartner: string
+
+  // Settings sheet
+  settings: string
+  showSettings: string
+  voiceSection: string
+  partnerSection: string
+  languagesSection: string
+  reconfigureMyVoice: string
+  reconfigurePartner: string
+  removePartner: string
+  changeLanguagesAction: string
+  noPartnerYet: string
+  voiceActiveDescription: string
+  voiceInactiveDescription: string
+  partnerActiveDescription: (lang: string) => string
 }
 
 const en: UIStrings = {
@@ -248,6 +264,21 @@ const en: UIStrings = {
   finishPartnerSetup: 'Start the conversation',
 
   confirmClearConversation: 'Clear the entire conversation?',
+  confirmRemovePartner: 'Remove the conversation partner?',
+
+  settings: 'Settings',
+  showSettings: 'Open settings',
+  voiceSection: 'Your voice',
+  partnerSection: 'Conversation partner',
+  languagesSection: 'Languages',
+  reconfigureMyVoice: 'Reconfigure my voice',
+  reconfigurePartner: 'Reconfigure partner',
+  removePartner: 'Remove partner',
+  changeLanguagesAction: 'Change languages',
+  noPartnerYet: 'No partner yet',
+  voiceActiveDescription: 'Your cloned voice is active.',
+  voiceInactiveDescription: 'Using the system voice. Set up your own to hear translations in your voice.',
+  partnerActiveDescription: (lang) => `Cloned voice for ${lang}.`,
 }
 
 const es: UIStrings = {
@@ -368,6 +399,21 @@ const es: UIStrings = {
   finishPartnerSetup: 'Empezar la conversación',
 
   confirmClearConversation: '¿Borrar toda la conversación?',
+  confirmRemovePartner: '¿Quitar al compañero de conversación?',
+
+  settings: 'Ajustes',
+  showSettings: 'Abrir ajustes',
+  voiceSection: 'Tu voz',
+  partnerSection: 'Compañero de conversación',
+  languagesSection: 'Idiomas',
+  reconfigureMyVoice: 'Volver a configurar mi voz',
+  reconfigurePartner: 'Volver a configurar al compañero',
+  removePartner: 'Quitar compañero',
+  changeLanguagesAction: 'Cambiar idiomas',
+  noPartnerYet: 'Aún no hay compañero',
+  voiceActiveDescription: 'Tu voz clonada está activa.',
+  voiceInactiveDescription: 'Usando la voz del sistema. Configura la tuya para oír las traducciones con tu voz.',
+  partnerActiveDescription: (lang) => `Voz clonada en ${lang}.`,
 }
 
 const pt: UIStrings = {
@@ -488,6 +534,21 @@ const pt: UIStrings = {
   finishPartnerSetup: 'Começar a conversa',
 
   confirmClearConversation: 'Apagar a conversa toda?',
+  confirmRemovePartner: 'Remover o parceiro de conversa?',
+
+  settings: 'Ajustes',
+  showSettings: 'Abrir ajustes',
+  voiceSection: 'Sua voz',
+  partnerSection: 'Parceiro de conversa',
+  languagesSection: 'Idiomas',
+  reconfigureMyVoice: 'Reconfigurar minha voz',
+  reconfigurePartner: 'Reconfigurar parceiro',
+  removePartner: 'Remover parceiro',
+  changeLanguagesAction: 'Mudar idiomas',
+  noPartnerYet: 'Sem parceiro ainda',
+  voiceActiveDescription: 'Sua voz clonada está ativa.',
+  voiceInactiveDescription: 'Usando voz do sistema. Configure a sua pra ouvir as traduções na sua voz.',
+  partnerActiveDescription: (lang) => `Voz clonada em ${lang}.`,
 }
 
 type UILangCode = 'es' | 'en' | 'pt'

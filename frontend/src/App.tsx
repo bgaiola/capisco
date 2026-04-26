@@ -9,6 +9,8 @@ import HistoryList from './components/HistoryList'
 import ConversationMode from './components/ConversationMode'
 import HelpModal from './components/HelpModal'
 import HelpButton from './components/HelpButton'
+import SettingsSheet from './components/SettingsSheet'
+import SettingsButton from './components/SettingsButton'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
 import { useAudioPlayer } from './hooks/useAudioPlayer'
 import { translateText } from './services/claude'
@@ -60,6 +62,7 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<AppTab>('voice')
   const [helpOpen, setHelpOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const [step, setStep] = useState<TranslationStep>('idle')
   const [currentTranslation, setCurrentTranslation] = useState<Translation | null>(null)
@@ -180,6 +183,20 @@ function App() {
     clearPartner()
     setPartner(null)
     setShowPartnerOnboarding(true)
+  }
+
+  const handleReconfigurePartner = () => {
+    setShowPartnerOnboarding(true)
+  }
+
+  const handleRemovePartner = () => {
+    if (!window.confirm(t.confirmRemovePartner)) return
+    clearPartner()
+    setPartner(null)
+  }
+
+  const handleChangeLanguages = () => {
+    setShowLangSelector(true)
   }
 
   const processTranslation = useCallback(
@@ -361,29 +378,32 @@ function App() {
 
   return (
     <div className="h-full flex flex-col max-w-lg mx-auto relative">
-      <header className="px-4 sm:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:pb-4 text-center shrink-0">
-        <h1 className="font-display text-3xl sm:text-4xl text-ink tracking-tight">CAPPISCO</h1>
-        <button
-          onClick={() => setShowLangSelector(true)}
-          className="font-mono text-[10px] sm:text-xs text-warm-gray mt-0.5 hover:text-terracotta transition-colors cursor-pointer"
-        >
-          {langPair.native.flag} {langPair.native.label} → {langPair.target.flag} {langPair.target.label}
-        </button>
-        <div className="flex items-center justify-center gap-2 mt-1">
-          <span
-            className={`inline-block w-1.5 h-1.5 rounded-full ${
-              voiceProfile ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-warm-gray-light'
-            }`}
-          />
-          <span className="font-mono text-[10px] text-warm-gray">
-            {voiceProfile ? t.clonedVoice : t.systemVoice}
-          </span>
-          <button
-            onClick={handleResetVoice}
-            className="font-mono text-[10px] text-terracotta/60 hover:text-terracotta underline underline-offset-2 cursor-pointer ml-1"
-          >
-            {voiceProfile ? t.resetVoice : t.setUpVoice}
-          </button>
+      <header className="px-4 sm:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:pb-4 shrink-0 relative">
+        <div className="flex items-start justify-between gap-2">
+          {/* spacer to keep title centered between two buttons */}
+          <div className="w-9 shrink-0" />
+          <div className="flex-1 text-center">
+            <h1 className="font-display text-3xl sm:text-4xl text-ink tracking-tight">CAPPISCO</h1>
+            <button
+              onClick={() => setShowLangSelector(true)}
+              className="font-mono text-[10px] sm:text-xs text-warm-gray mt-0.5 hover:text-terracotta transition-colors cursor-pointer"
+            >
+              {langPair.native.flag} {langPair.native.label} → {langPair.target.flag} {langPair.target.label}
+            </button>
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <span
+                className={`inline-block w-1.5 h-1.5 rounded-full ${
+                  voiceProfile ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-warm-gray-light'
+                }`}
+              />
+              <span className="font-mono text-[10px] text-warm-gray">
+                {voiceProfile ? t.clonedVoice : t.systemVoice}
+              </span>
+            </div>
+          </div>
+          <div className="shrink-0">
+            <SettingsButton onClick={() => setSettingsOpen(true)} label={t.showSettings} />
+          </div>
         </div>
       </header>
 
@@ -588,6 +608,19 @@ function App() {
           strings={t}
         />
       )}
+
+      <SettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        strings={t}
+        langPair={langPair}
+        voiceProfile={voiceProfile}
+        partner={partner}
+        onReconfigureMyVoice={handleResetVoice}
+        onReconfigurePartner={handleReconfigurePartner}
+        onRemovePartner={handleRemovePartner}
+        onChangeLanguages={handleChangeLanguages}
+      />
     </div>
   )
 }
