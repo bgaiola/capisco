@@ -1,10 +1,13 @@
 /**
  * Language system for CAPPISCO
- * Three supported languages: English (US), Portuguese (Brazil), Spanish (Spain).
- * The user's native language also drives the UI language.
+ *
+ * - LANGUAGES is the full list of available speak/learn languages.
+ * - The UI itself is translated only into a subset (es, en, pt) in i18n/strings.ts.
+ *   The picker for native language drives the UI language; if a native language
+ *   has no UI translation, the UI falls back to Spanish (Spain).
  */
 
-export type LangCode = 'es' | 'en' | 'pt'
+export type LangCode = 'es' | 'en' | 'pt' | 'fr' | 'it' | 'zh' | 'ru' | 'nl'
 
 export interface Language {
   /** ISO 639-1 code used by Google Translate */
@@ -46,21 +49,67 @@ export const LANGUAGES: Language[] = [
     flag: '🇧🇷',
     englishName: 'Portuguese (Brazil)',
   },
+  {
+    code: 'pt',
+    speechCode: 'pt-PT',
+    ttsCode: 'pt-PT',
+    label: 'Português (Portugal)',
+    flag: '🇵🇹',
+    englishName: 'Portuguese (Portugal)',
+  },
+  {
+    code: 'it',
+    speechCode: 'it-IT',
+    ttsCode: 'it-IT',
+    label: 'Italiano',
+    flag: '🇮🇹',
+    englishName: 'Italian',
+  },
+  {
+    code: 'fr',
+    speechCode: 'fr-FR',
+    ttsCode: 'fr-FR',
+    label: 'Français',
+    flag: '🇫🇷',
+    englishName: 'French',
+  },
+  {
+    code: 'zh',
+    speechCode: 'zh-CN',
+    ttsCode: 'zh-CN',
+    label: '中文 (普通话)',
+    flag: '🇨🇳',
+    englishName: 'Mandarin Chinese',
+  },
+  {
+    code: 'ru',
+    speechCode: 'ru-RU',
+    ttsCode: 'ru-RU',
+    label: 'Русский',
+    flag: '🇷🇺',
+    englishName: 'Russian',
+  },
+  {
+    code: 'nl',
+    speechCode: 'nl-NL',
+    ttsCode: 'nl-NL',
+    label: 'Nederlands',
+    flag: '🇳🇱',
+    englishName: 'Dutch',
+  },
 ]
 
-/** Unique key for a language */
 export function langKey(lang: Language): string {
   return lang.speechCode
 }
 
-/** Find a language by its speechCode key */
 export function findLang(key: string): Language | undefined {
   return LANGUAGES.find((l) => l.speechCode === key)
 }
 
-/** Default language pair: Spanish (Spain) → English (US) */
+/** Default language pair: Spanish (Spain) → Italian */
 export const DEFAULT_NATIVE = 'es-ES'
-export const DEFAULT_TARGET = 'en-US'
+export const DEFAULT_TARGET = 'it-IT'
 
 export interface LanguagePair {
   native: Language

@@ -2,7 +2,11 @@ import type { LangCode } from '../types/languages'
 
 /**
  * Voice-cloning sample texts. Multiple variants per language so each
- * onboarding attempt picks a fresh one. Each text is ~30s read aloud.
+ * onboarding attempt picks a fresh one. Each text reads in ~30s aloud.
+ *
+ * For languages where we have a single, high-quality variant we keep just
+ * that one (we'd rather repeat a good text than ship machine-translated
+ * filler that hurts the voice clone).
  */
 const SAMPLES: Record<LangCode, string[]> = {
   es: [
@@ -82,6 +86,88 @@ Perguntei por mímica. Uma senhora muito gentil me apontou o caminho, dando risa
 
 Desde então sempre aprendo três frases antes de pisar num país novo: oi, obrigado, e onde fica o banheiro.`,
   ],
+
+  it: [
+    `Ho una teoria: nessuno sa davvero ordinare da mangiare in una lingua straniera. Facciamo tutti finta. Indichi, sorridi, fai la faccia di chi ha capito, e preghi che non ti portino un piatto di tentacoli.
+
+È esattamente quello che mi è successo a Napoli. Ho ordinato quella che giuravo fosse una margherita. È arrivato un vassoio di frutti di mare con creature che non riuscivo nemmeno a identificare. Ho mangiato tutto, ovviamente — perché rifiutare il cibo in Italia è praticamente un crimine internazionale.
+
+La cosa migliore dell'imparare una lingua nuova è che ogni errore diventa una storia da raccontare ridendo a cena.`,
+
+    `C'è qualcosa di magico nel perdersi in una città che non conosci. Cammini senza meta, senza Google Maps, lasciandoti trascinare dalle strade, dal profumo del pane appena sfornato, dal suono di gente che discute su un balcone al sole.
+
+La prima volta che mi sono perso a Lisbona, sono finito in un mercato dove nessuno parlava la mia lingua. Ho comprato un pastel de nata, un caffè e mi sono seduto a guardare. Un'ora dopo conoscevo tre signore, due gatti e la ricetta della zuppa che servivano la domenica.
+
+Sono quei momenti che resti. Non il museo. Le persone.`,
+
+    `L'altro giorno mi hanno chiesto qual era il mio ricordo di viaggio preferito. Ho pensato a monumenti, tramonti, ristoranti stellati. Alla fine ho detto: un pomeriggio di pioggia a Roma, senza ombrello, senza piano, mangiando un gelato al pistacchio dentro un portone con un cane randagio accanto.
+
+Credo che i ricordi migliori non si programmino. Arrivano quando smetti di voler controllare tutto e cammini, ascolti, ridi con sconosciuti.
+
+Imparare una lingua è un po' così. All'inizio vuoi dominare tutto. Poi accetti che anche il caos insegna.`,
+  ],
+
+  fr: [
+    `J'ai une théorie : personne ne sait vraiment commander à manger dans une langue étrangère. On fait tous semblant. Tu pointes du doigt, tu souris, tu fais comme si tu avais compris, et tu pries pour qu'on ne t'apporte pas une assiette de tentacules.
+
+C'est exactement ce qui m'est arrivé à Naples. J'ai commandé ce que je jurais être une margherita. Ce qui est arrivé, c'était un plateau de fruits de mer avec des créatures que je ne pouvais même pas identifier. J'ai tout mangé, évidemment — parce que refuser de la nourriture en Italie, c'est pratiquement un crime international.
+
+Le meilleur quand on apprend une nouvelle langue, c'est que chaque erreur devient une histoire qu'on raconte en riant au dîner.`,
+
+    `Il y a quelque chose de magique à se perdre dans une ville qu'on ne connaît pas. Tu marches sans but, sans Google Maps, en te laissant porter par les rues, par l'odeur du pain qui sort du four, par le bruit des gens qui discutent sur une terrasse ensoleillée.
+
+La première fois que je me suis perdu à Lisbonne, j'ai atterri dans un marché où personne ne parlait ma langue. J'ai acheté un pastel de nata, un café, et je me suis assis pour observer. Une heure plus tard, je connaissais trois grand-mères, deux chats et la recette de la soupe qu'elles servaient le dimanche.
+
+Ce sont ces moments-là qu'on garde. Pas le musée. Les gens.`,
+
+    `L'autre jour, on m'a demandé quel était mon meilleur souvenir de voyage. J'ai pensé aux monuments, aux couchers de soleil, aux restaurants étoilés. Mais finalement j'ai dit : un après-midi pluvieux à Rome, sans parapluie, sans plan, à manger une glace à la pistache sous un porche avec un chien errant à côté de moi.
+
+Je crois que les meilleurs souvenirs ne se planifient pas. Ils arrivent quand tu arrêtes d'essayer de tout contrôler et que tu marches, écoutes, ris avec des inconnus.
+
+Apprendre une langue, c'est un peu pareil. Au début tu veux tout maîtriser. Ensuite tu acceptes que le chaos t'apprend aussi.`,
+  ],
+
+  zh: [
+    `我有一个理论：没有人真正知道怎么用外语点餐。我们都在假装。你指着菜单，微笑，装出听懂了的样子，然后祈祷他们不会端上一盘触手。
+
+这正是我在那不勒斯经历的事情。我点了我发誓是一份玛格丽特披萨的东西。结果端上来的是一大盘海鲜，里面的生物我连名字都叫不出来。我当然全吃了——因为在意大利拒绝食物基本上就是国际犯罪。
+
+学习新语言最棒的地方在于，每个错误都会变成一个让你在晚餐时笑着讲述的故事。`,
+
+    `在一个不熟悉的城市里迷路，是有一种魔力的。你漫无目的地走着，没有地图，让自己跟着街道走，跟着刚出炉的面包香味走，跟着阳台上人们争论的声音走。
+
+我第一次在里斯本迷路的时候，最后走进了一个没人会说我语言的市场。我买了一个蛋挞，一杯咖啡，坐下来观察。一个小时后，我已经认识了三位老奶奶、两只猫，还学到了她们星期天卖的那道汤的做法。
+
+那才是你会记住的瞬间。不是博物馆，是人。`,
+  ],
+
+  ru: [
+    `У меня есть теория: никто на самом деле не умеет заказывать еду на иностранном языке. Мы все притворяемся. Ты показываешь пальцем, улыбаешься, делаешь вид, что всё понял, и молишься, чтобы тебе не принесли тарелку с щупальцами.
+
+Именно это и случилось со мной в Неаполе. Я заказал то, что был абсолютно уверен — маргариту. Принесли поднос с морепродуктами и существами, которых я даже не мог опознать. Я всё съел, конечно — потому что отказаться от еды в Италии — это практически международное преступление.
+
+Лучшее в изучении нового языка — каждая ошибка превращается в историю для ужина.`,
+
+    `Есть что-то волшебное в том, чтобы заблудиться в незнакомом городе. Ты идёшь без цели, без карт в телефоне, позволяя улицам, запаху свежего хлеба и голосам людей на освещённой солнцем террасе вести тебя.
+
+Когда я впервые заблудился в Лиссабоне, я оказался на рынке, где никто не говорил на моём языке. Я купил пирожное, кофе и сел наблюдать. Через час я уже знал трёх бабушек, двух кошек и рецепт супа, который подавали по воскресеньям.
+
+Именно такие моменты остаются. Не музей. Люди.`,
+  ],
+
+  nl: [
+    `Ik heb een theorie: niemand weet echt hoe je eten moet bestellen in een vreemde taal. We doen allemaal alsof. Je wijst, glimlacht, doet alsof je het begrepen hebt, en bidt dat ze geen bord met tentakels brengen.
+
+Dat is precies wat mij overkwam in Napels. Ik bestelde wat ik zeker wist een margherita was. Wat er kwam was een schaal zeevruchten met wezens die ik niet eens kon identificeren. Ik at alles op, natuurlijk — want eten weigeren in Italië is praktisch een internationaal misdrijf.
+
+Het beste van een nieuwe taal leren is dat elke fout een verhaal wordt dat je lachend vertelt bij het avondeten.`,
+
+    `Er is iets magisch aan verdwalen in een stad die je niet kent. Je loopt zonder doel, zonder Google Maps, je laat je meedrijven door de straten, door de geur van vers brood, door het geluid van mensen die op een zonnig terras zitten te discussiëren.
+
+De eerste keer dat ik in Lissabon verdwaalde, kwam ik terecht op een markt waar niemand mijn taal sprak. Ik kocht een pastel de nata, een koffie en ging zitten om te kijken. Een uur later kende ik drie oma's, twee katten en het recept van de soep die ze op zondag serveerden.
+
+Dat zijn de momenten die je je herinnert. Niet het museum. De mensen.`,
+  ],
 }
 
 /** Simple non-cryptographic random pick. */
@@ -89,7 +175,6 @@ export function pickSampleText(code: LangCode, exclude?: string): string {
   const list = SAMPLES[code] ?? SAMPLES.en
   if (list.length === 1) return list[0]
   let pick = list[Math.floor(Math.random() * list.length)]
-  // Avoid repeating the exact same text twice in a row.
   if (exclude && pick === exclude) {
     pick = list[(list.indexOf(pick) + 1) % list.length]
   }
@@ -101,4 +186,9 @@ export const PREVIEW_PHRASES: Record<LangCode, string> = {
   en: "Hello, it's me!",
   es: '¡Hola, soy yo!',
   pt: 'Olá, sou eu!',
+  it: 'Ciao, sono io!',
+  fr: "Bonjour, c'est moi !",
+  zh: '你好，是我！',
+  ru: 'Привет, это я!',
+  nl: 'Hallo, ik ben het!',
 }

@@ -292,8 +292,11 @@ const pt: UIStrings = {
   voiceSavedOnThisDevice: 'Sua voz clonada está salva neste dispositivo.',
 }
 
-const DICT: Record<LangCode, UIStrings> = { en, es, pt }
+/** Languages with a full UI translation. Other native languages fall back to ES. */
+type UILangCode = 'es' | 'en' | 'pt'
+
+const DICT: Record<UILangCode, UIStrings> = { en, es, pt }
 
 export function getStrings(code: LangCode): UIStrings {
-  return DICT[code] ?? es
+  return DICT[code as UILangCode] ?? es
 }

@@ -4,7 +4,9 @@
 
 CAPPISCO is a small, focused language coach. You speak (or type) a phrase in your language, it translates the phrase, and plays the translation back to you using a clone of your own voice.
 
-Three supported UI / source / target languages: **🇪🇸 Español (España)**, **🇺🇸 English (US)**, **🇧🇷 Português (Brasil)**. The UI follows whichever you pick as your native language.
+**Speak / learn languages:** 🇪🇸 Spanish · 🇺🇸 English · 🇧🇷 Portuguese (BR) · 🇵🇹 Portuguese (PT) · 🇮🇹 Italian · 🇫🇷 French · 🇨🇳 Mandarin · 🇷🇺 Russian · 🇳🇱 Dutch.
+
+**UI translations:** Spanish (default), English, Portuguese (Brazil). The UI follows whichever you pick as your native language; if your native language doesn't have a UI translation, it falls back to Spanish.
 
 ![Status](https://img.shields.io/badge/status-beta-orange) ![React](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)
 
