@@ -1,12 +1,13 @@
 {
   "name": "CAPISCO",
   "short_name": "CAPISCO",
-  "description": "Treinador de idiomas Português → Italiano com clonagem de voz",
+  "description": "Clone your voice and hear yourself speak another language.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F0E8",
   "theme_color": "#C4603A",
   "orientation": "portrait",
+  "categories": ["education", "productivity", "lifestyle"],
   "icons": [
     {
       "src": "/icon.svg",

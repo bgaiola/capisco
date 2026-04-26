@@ -1,5 +1,6 @@
 import type { Translation } from '../types'
 import type { Language } from '../types/languages'
+import type { UIStrings } from '../i18n/strings'
 
 interface TranscriptCardProps {
   translation: Translation
@@ -7,6 +8,7 @@ interface TranscriptCardProps {
   isPlaying?: boolean
   nativeLang?: Language
   targetLang?: Language
+  strings: UIStrings
 }
 
 export default function TranscriptCard({
@@ -15,6 +17,7 @@ export default function TranscriptCard({
   isPlaying = false,
   nativeLang,
   targetLang,
+  strings: t,
 }: TranscriptCardProps) {
   const handleCopy = () => {
     navigator.clipboard.writeText(translation.translatedText)
@@ -24,8 +27,7 @@ export default function TranscriptCard({
   const targetLabel = targetLang ? `${targetLang.flag} ${targetLang.label}` : 'Translation'
 
   return (
-    <div className="animate-fade-up bg-white/60 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-warm-gray-light/30 shadow-sm">
-      {/* Original */}
+    <div className="animate-fade-up glass-card rounded-2xl p-4 sm:p-6">
       <div className="mb-3 sm:mb-4">
         <span className="font-mono text-[10px] sm:text-xs text-warm-gray uppercase tracking-wider">
           {nativeLabel}
@@ -35,10 +37,8 @@ export default function TranscriptCard({
         </p>
       </div>
 
-      {/* Divider */}
       <div className="border-t border-warm-gray-light/30 my-3 sm:my-4" />
 
-      {/* Translation */}
       <div className="mb-3 sm:mb-4">
         <span className="font-mono text-[10px] sm:text-xs text-terracotta uppercase tracking-wider">
           {targetLabel}
@@ -48,7 +48,6 @@ export default function TranscriptCard({
         </p>
       </div>
 
-      {/* Cultural Note */}
       {translation.notes && (
         <div className="bg-gold/5 border border-gold/20 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
           <div className="flex items-start gap-2">
@@ -60,7 +59,6 @@ export default function TranscriptCard({
         </div>
       )}
 
-      {/* Actions */}
       <div className="flex items-center gap-2 sm:gap-3 mt-3 sm:mt-4">
         {onPlayAudio && (
           <button
@@ -70,14 +68,14 @@ export default function TranscriptCard({
             {isPlaying ? (
               <>
                 <AudioBars />
-                Playing...
+                {t.playing}
               </>
             ) : (
               <>
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
-                Listen
+                {t.listen}
               </>
             )}
           </button>
@@ -91,7 +89,7 @@ export default function TranscriptCard({
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
-          Copy
+          {t.copy}
         </button>
       </div>
     </div>

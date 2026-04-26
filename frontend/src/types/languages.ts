@@ -1,12 +1,15 @@
 /**
  * Language system for CAPISCO
- * Supports multiple source and target languages
+ * Three supported languages: English (US), Portuguese (Brazil), Spanish (Spain).
+ * The user's native language also drives the UI language.
  */
 
+export type LangCode = 'es' | 'en' | 'pt'
+
 export interface Language {
-  /** ISO 639-1 code used by Google Translate (e.g. 'pt', 'es') */
-  code: string
-  /** BCP-47 locale for Web Speech API recognition (e.g. 'pt-BR', 'es-ES') */
+  /** ISO 639-1 code used by Google Translate */
+  code: LangCode
+  /** BCP-47 locale for Web Speech API recognition */
   speechCode: string
   /** BCP-47 locale for Web Speech Synthesis fallback TTS */
   ttsCode: string
@@ -20,28 +23,12 @@ export interface Language {
 
 export const LANGUAGES: Language[] = [
   {
-    code: 'pt',
-    speechCode: 'pt-BR',
-    ttsCode: 'pt-BR',
-    label: 'Português (Brasil)',
-    flag: '🇧🇷',
-    englishName: 'Portuguese (Brazil)',
-  },
-  {
-    code: 'pt',
-    speechCode: 'pt-PT',
-    ttsCode: 'pt-PT',
-    label: 'Português (Portugal)',
-    flag: '🇵🇹',
-    englishName: 'Portuguese (Portugal)',
-  },
-  {
     code: 'es',
     speechCode: 'es-ES',
     ttsCode: 'es-ES',
-    label: 'Español',
+    label: 'Español (España)',
     flag: '🇪🇸',
-    englishName: 'Spanish',
+    englishName: 'Spanish (Spain)',
   },
   {
     code: 'en',
@@ -52,48 +39,16 @@ export const LANGUAGES: Language[] = [
     englishName: 'English (US)',
   },
   {
-    code: 'fr',
-    speechCode: 'fr-FR',
-    ttsCode: 'fr-FR',
-    label: 'Français',
-    flag: '🇫🇷',
-    englishName: 'French',
-  },
-  {
-    code: 'it',
-    speechCode: 'it-IT',
-    ttsCode: 'it-IT',
-    label: 'Italiano',
-    flag: '🇮🇹',
-    englishName: 'Italian',
-  },
-  {
-    code: 'zh',
-    speechCode: 'zh-CN',
-    ttsCode: 'zh-CN',
-    label: '中文 (普通话)',
-    flag: '🇨🇳',
-    englishName: 'Mandarin Chinese',
-  },
-  {
-    code: 'ru',
-    speechCode: 'ru-RU',
-    ttsCode: 'ru-RU',
-    label: 'Русский',
-    flag: '🇷🇺',
-    englishName: 'Russian',
-  },
-  {
-    code: 'nl',
-    speechCode: 'nl-NL',
-    ttsCode: 'nl-NL',
-    label: 'Nederlands',
-    flag: '🇳🇱',
-    englishName: 'Dutch',
+    code: 'pt',
+    speechCode: 'pt-BR',
+    ttsCode: 'pt-BR',
+    label: 'Português (Brasil)',
+    flag: '🇧🇷',
+    englishName: 'Portuguese (Brazil)',
   },
 ]
 
-/** Unique key for a language (since pt-BR and pt-PT share the same ISO code) */
+/** Unique key for a language */
 export function langKey(lang: Language): string {
   return lang.speechCode
 }
@@ -103,26 +58,37 @@ export function findLang(key: string): Language | undefined {
   return LANGUAGES.find((l) => l.speechCode === key)
 }
 
-/** Default language pair */
-export const DEFAULT_NATIVE = 'pt-BR'
-export const DEFAULT_TARGET = 'it-IT'
+/** Default language pair: Spanish (Spain) → English (US) */
+export const DEFAULT_NATIVE = 'es-ES'
+export const DEFAULT_TARGET = 'en-US'
 
 export interface LanguagePair {
   native: Language
   target: Language
 }
 
+const STORAGE_NATIVE = 'capisco_native_lang'
+const STORAGE_TARGET = 'capisco_target_lang'
+
 export function loadLanguagePair(): LanguagePair {
-  const savedNative = localStorage.getItem('capisco_native_lang')
-  const savedTarget = localStorage.getItem('capisco_target_lang')
+  const savedNative = localStorage.getItem(STORAGE_NATIVE)
+  const savedTarget = localStorage.getItem(STORAGE_TARGET)
 
   const native = (savedNative && findLang(savedNative)) || findLang(DEFAULT_NATIVE)!
-  const target = (savedTarget && findLang(savedTarget)) || findLang(DEFAULT_TARGET)!
+  let target = (savedTarget && findLang(savedTarget)) || findLang(DEFAULT_TARGET)!
+
+  if (langKey(target) === langKey(native)) {
+    target = LANGUAGES.find((l) => langKey(l) !== langKey(native))!
+  }
 
   return { native, target }
 }
 
 export function saveLanguagePair(pair: LanguagePair): void {
-  localStorage.setItem('capisco_native_lang', langKey(pair.native))
-  localStorage.setItem('capisco_target_lang', langKey(pair.target))
+  localStorage.setItem(STORAGE_NATIVE, langKey(pair.native))
+  localStorage.setItem(STORAGE_TARGET, langKey(pair.target))
+}
+
+export function hasStoredLanguagePair(): boolean {
+  return localStorage.getItem(STORAGE_NATIVE) !== null
 }

@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import type { SpeechRecognitionHook } from '../types'
 
-// Web Speech API types
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList
   resultIndex: number
@@ -12,15 +11,29 @@ interface SpeechRecognitionErrorEvent extends Event {
   message: string
 }
 
-export function useSpeechRecognition(lang: string = 'pt-BR'): SpeechRecognitionHook {
+/**
+ * Stable error codes emitted by this hook. The UI is responsible for
+ * mapping them to localized strings.
+ */
+export type SpeechErrorCode =
+  | 'unsupported'
+  | 'no-speech'
+  | 'not-allowed'
+  | 'other'
+
+export function useSpeechRecognition(lang: string = 'pt-BR'): SpeechRecognitionHook & {
+  errorCode: SpeechErrorCode | null
+} {
   const [isListening, setIsListening] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [errorCode, setErrorCode] = useState<SpeechErrorCode | null>(null)
   const recognitionRef = useRef<any>(null)
   const finalTranscriptRef = useRef('')
 
   const startListening = useCallback(() => {
     setError(null)
+    setErrorCode(null)
     setTranscript('')
     finalTranscriptRef.current = ''
 
@@ -29,6 +42,7 @@ export function useSpeechRecognition(lang: string = 'pt-BR'): SpeechRecognitionH
 
     if (!SpeechRecognition) {
       setError('Speech recognition not supported in this browser. Use Chrome.')
+      setErrorCode('unsupported')
       return
     }
 
@@ -43,8 +57,6 @@ export function useSpeechRecognition(lang: string = 'pt-BR'): SpeechRecognitionH
     }
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      // With continuous=false, there's typically one result.
-      // We still handle multiple results defensively.
       let finalText = ''
       let interimText = ''
 
@@ -68,16 +80,18 @@ export function useSpeechRecognition(lang: string = 'pt-BR'): SpeechRecognitionH
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (event.error === 'no-speech') {
         setError('No speech detected. Try again.')
+        setErrorCode('no-speech')
       } else if (event.error === 'not-allowed') {
         setError('Microphone permission denied. Please allow access.')
+        setErrorCode('not-allowed')
       } else if (event.error !== 'aborted') {
         setError(`Recognition error: ${event.error}`)
+        setErrorCode('other')
       }
     }
 
     recognition.onend = () => {
       setIsListening(false)
-      // Ensure we have the final transcript available
       if (finalTranscriptRef.current) {
         setTranscript(finalTranscriptRef.current)
       }
@@ -96,6 +110,7 @@ export function useSpeechRecognition(lang: string = 'pt-BR'): SpeechRecognitionH
   const resetTranscript = useCallback(() => {
     setTranscript('')
     setError(null)
+    setErrorCode(null)
     finalTranscriptRef.current = ''
   }, [])
 
@@ -103,6 +118,7 @@ export function useSpeechRecognition(lang: string = 'pt-BR'): SpeechRecognitionH
     isListening,
     transcript,
     error,
+    errorCode,
     startListening,
     stopListening,
     resetTranscript,

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'capisco-v1'
+const CACHE_NAME = 'capisco-v2'
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json']
 
 self.addEventListener('install', (event) => {
@@ -18,19 +18,42 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('fetch', (event) => {
-  // Skip API requests — always go to network
-  if (event.request.url.includes('/api/')) return
+  const req = event.request
+  if (req.method !== 'GET') return
+  // Always go to network for API calls
+  if (req.url.includes('/api/')) return
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        // Cache successful GET requests
-        if (event.request.method === 'GET' && response.status === 200) {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
-        }
-        return response
+  const url = new URL(req.url)
+
+  // Network-first for HTML/navigation so users always get the latest UI
+  if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const clone = res.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone))
+          return res
+        })
+        .catch(() => caches.match(req).then((c) => c || caches.match('/index.html')))
+    )
+    return
+  }
+
+  // Cache-first for hashed/static assets (vite emits hashed file names)
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        return (
+          cached ||
+          fetch(req).then((res) => {
+            if (res.status === 200) {
+              const clone = res.clone()
+              caches.open(CACHE_NAME).then((cache) => cache.put(req, clone))
+            }
+            return res
+          })
+        )
       })
-    }).catch(() => caches.match('/index.html'))
-  )
+    )
+  }
 })

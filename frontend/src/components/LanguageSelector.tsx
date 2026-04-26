@@ -5,13 +5,15 @@ import {
   type Language,
   type LanguagePair,
 } from '../types/languages'
+import type { UIStrings } from '../i18n/strings'
 
 interface LanguageSelectorProps {
   pair: LanguagePair
   onConfirm: (pair: LanguagePair) => void
+  strings: UIStrings
 }
 
-export default function LanguageSelector({ pair, onConfirm }: LanguageSelectorProps) {
+export default function LanguageSelector({ pair, onConfirm, strings: t }: LanguageSelectorProps) {
   const [native, setNative] = useState<Language>(pair.native)
   const [target, setTarget] = useState<Language>(pair.target)
   const [selecting, setSelecting] = useState<'native' | 'target' | null>(null)
@@ -19,15 +21,10 @@ export default function LanguageSelector({ pair, onConfirm }: LanguageSelectorPr
   const handleSelect = (lang: Language) => {
     if (selecting === 'native') {
       setNative(lang)
-      // If user picks same as target, swap
-      if (langKey(lang) === langKey(target)) {
-        setTarget(native)
-      }
+      if (langKey(lang) === langKey(target)) setTarget(native)
     } else if (selecting === 'target') {
       setTarget(lang)
-      if (langKey(lang) === langKey(native)) {
-        setNative(target)
-      }
+      if (langKey(lang) === langKey(native)) setNative(target)
     }
     setSelecting(null)
   }
@@ -42,28 +39,24 @@ export default function LanguageSelector({ pair, onConfirm }: LanguageSelectorPr
     onConfirm({ native, target })
   }
 
-  // Languages available to pick (exclude the "other" selected one)
   const availableForNative = LANGUAGES.filter((l) => langKey(l) !== langKey(target))
   const availableForTarget = LANGUAGES.filter((l) => langKey(l) !== langKey(native))
   const available = selecting === 'native' ? availableForNative : availableForTarget
 
   return (
-    <div className="h-full flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 max-w-lg mx-auto safe-top safe-bottom">
-      {/* Logo */}
+    <div className="h-full overflow-y-auto overscroll-contain flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 max-w-lg mx-auto safe-top safe-bottom">
       <h1 className="font-display text-4xl sm:text-5xl text-ink mb-1 sm:mb-2 tracking-tight mt-4 sm:mt-0">
         CAPISCO
       </h1>
       <p className="font-mono text-xs sm:text-sm text-warm-gray mb-8 sm:mb-12">
-        choose your languages
+        {t.chooseLanguagesTagline}
       </p>
 
-      {/* Selection area */}
       {selecting === null ? (
         <div className="animate-fade-up w-full">
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 sm:p-8 border border-warm-gray-light/30 mb-6">
-            {/* Native language */}
+          <div className="glass-card rounded-2xl p-5 sm:p-8 mb-6">
             <p className="font-mono text-[10px] sm:text-xs text-warm-gray uppercase tracking-wider mb-2">
-              I speak
+              {t.iSpeak}
             </p>
             <button
               onClick={() => setSelecting('native')}
@@ -78,12 +71,12 @@ export default function LanguageSelector({ pair, onConfirm }: LanguageSelectorPr
               </svg>
             </button>
 
-            {/* Swap button */}
             <div className="flex justify-center my-3">
               <button
                 onClick={handleSwap}
                 className="p-2 rounded-full hover:bg-terracotta/10 transition-colors cursor-pointer group"
-                title="Swap languages"
+                title={t.swapLanguages}
+                aria-label={t.swapLanguages}
               >
                 <svg className="w-5 h-5 text-warm-gray group-hover:text-terracotta transition-colors" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4 4 4m6 0v12m0 0 4-4m-4 4-4-4" />
@@ -91,9 +84,8 @@ export default function LanguageSelector({ pair, onConfirm }: LanguageSelectorPr
               </button>
             </div>
 
-            {/* Target language */}
             <p className="font-mono text-[10px] sm:text-xs text-warm-gray uppercase tracking-wider mb-2">
-              I want to learn
+              {t.iWantToLearn}
             </p>
             <button
               onClick={() => setSelecting('target')}
@@ -109,28 +101,27 @@ export default function LanguageSelector({ pair, onConfirm }: LanguageSelectorPr
             </button>
           </div>
 
-          {/* Confirm */}
           <button
             onClick={handleConfirm}
-            className="w-full px-6 py-4 rounded-xl bg-terracotta text-white hover:bg-terracotta-dark active:scale-95 transition-all font-medium text-base sm:text-lg cursor-pointer touch-target"
+            className="w-full px-6 py-4 rounded-xl bg-terracotta text-white hover:bg-terracotta-dark active:scale-95 transition-all font-medium text-base sm:text-lg cursor-pointer touch-target shadow-[0_10px_30px_-12px_rgba(196,96,58,0.6)]"
           >
-            {native.flag} → {target.flag} Let's go!
+            {native.flag} → {target.flag} {t.letsGo}
           </button>
         </div>
       ) : (
-        /* Language picker list */
         <div className="animate-fade-up w-full">
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => setSelecting(null)}
               className="p-2 -ml-2 rounded-full hover:bg-warm-gray/10 transition-colors cursor-pointer"
+              aria-label="Back"
             >
               <svg className="w-5 h-5 text-warm-gray" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <p className="font-mono text-sm text-warm-gray">
-              {selecting === 'native' ? 'Select your language' : 'Select target language'}
+              {selecting === 'native' ? t.selectYourLanguage : t.selectTargetLanguage}
             </p>
           </div>
 
@@ -148,7 +139,7 @@ export default function LanguageSelector({ pair, onConfirm }: LanguageSelectorPr
                   className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left cursor-pointer touch-target ${
                     isSelected
                       ? 'bg-terracotta/10 border-2 border-terracotta/40'
-                      : 'bg-white/60 border-2 border-transparent hover:border-warm-gray-light/40'
+                      : 'glass-card border-2 border-transparent hover:border-warm-gray-light/40'
                   }`}
                 >
                   <span className="text-2xl">{lang.flag}</span>

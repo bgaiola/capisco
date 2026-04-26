@@ -4,6 +4,7 @@
 @theme {
   --color-crema: #F5F0E8;
   --color-crema-dark: #EDE6D9;
+  --color-crema-deep: #E5DCC8;
   --color-ink: #1A1714;
   --color-terracotta: #C4603A;
   --color-terracotta-light: #D4794F;
@@ -28,41 +29,50 @@
 
 html {
   height: 100%;
+  /* Use dynamic viewport on mobile so the bottom tab bar isn't covered by Safari UI */
+  height: 100dvh;
   overflow: hidden;
 }
 
 body {
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   font-family: var(--font-body);
-  background-color: var(--color-crema);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent pull-to-refresh on mobile */
   overscroll-behavior-y: contain;
+
+  /* Soft warm gradient background */
+  background-color: var(--color-crema);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(196, 96, 58, 0.08), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 80% 100%, rgba(184, 134, 11, 0.06), transparent 60%),
+    linear-gradient(180deg, var(--color-crema) 0%, var(--color-crema-dark) 100%);
+  background-attachment: fixed;
 }
 
 #root {
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
 }
 
-/* Grain texture overlay */
+/* Subtle paper grain overlay */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.03;
+  opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 256px 256px;
 }
 
 /* ===== Mobile Utilities ===== */
-/* Safe area padding for notch/home indicator */
 .safe-top {
   padding-top: env(safe-area-inset-top, 0px);
 }
@@ -76,79 +86,107 @@ body::before {
   padding-right: env(safe-area-inset-right, 0px);
 }
 
-/* Touch-friendly minimum sizes */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
 }
 
+/* Glass-card base — used across cards for consistency */
+.glass-card {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.55) 100%
+  );
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  border: 1px solid rgba(181, 174, 165, 0.28);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 8px 24px -12px rgba(26, 23, 20, 0.12);
+}
+
+/* Soft terracotta glow used on the mic button while idle */
+.glow-terracotta {
+  box-shadow:
+    0 0 0 0 rgba(196, 96, 58, 0.4),
+    0 18px 30px -18px rgba(196, 96, 58, 0.45);
+}
+
 /* ===== Animations ===== */
 @keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes pulse-ring {
-  0% {
-    transform: scale(1);
-    opacity: 0.4;
-  }
-  100% {
-    transform: scale(1.5);
-    opacity: 0;
-  }
+  0% { transform: scale(1); opacity: 0.45; }
+  100% { transform: scale(1.6); opacity: 0; }
 }
 
 @keyframes wave-bar {
-  0%, 100% {
-    transform: scaleY(0.3);
-  }
-  50% {
-    transform: scaleY(1);
-  }
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
 }
 
-.animate-fade-up {
-  animation: fadeUp 0.4s ease-out both;
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-.animate-pulse-ring {
-  animation: pulse-ring 1.5s ease-out infinite;
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
-.animate-wave-bar {
-  animation: wave-bar 0.8s ease-in-out infinite;
+.animate-fade-up { animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-in { animation: fadeIn 0.4s ease-out both; }
+.animate-pulse-ring { animation: pulse-ring 1.6s ease-out infinite; }
+.animate-wave-bar { animation: wave-bar 0.8s ease-in-out infinite; }
+.animate-float-soft { animation: float-soft 3.5s ease-in-out infinite; }
+
+/* Shimmer for skeleton-like states */
+.shimmer {
+  background-image: linear-gradient(
+    90deg,
+    rgba(196, 96, 58, 0.05) 0%,
+    rgba(196, 96, 58, 0.18) 50%,
+    rgba(196, 96, 58, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
 }
 
 /* ===== Scrollbar (desktop only) ===== */
 @media (min-width: 768px) {
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
     background: var(--color-warm-gray-light);
     border-radius: 3px;
   }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-warm-gray);
-  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-warm-gray); }
 }
 
 /* ===== iOS input zoom prevention ===== */
 @media screen and (max-width: 768px) {
   input, textarea, select {
     font-size: 16px !important;
+  }
+}
+
+/* Honor user's reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }
