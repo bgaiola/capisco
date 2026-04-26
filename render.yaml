@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: capisco
+    name: cappisco
     runtime: node
     region: oregon
     plan: free

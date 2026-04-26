@@ -7,7 +7,7 @@ const upload = multer({ storage: multer.memoryStorage() })
 router.post('/clone-voice', upload.single('audio'), async (req, res) => {
   try {
     const audioFile = req.file
-    const name = req.body?.name || 'CAPISCO User'
+    const name = req.body?.name || 'CAPPISCO User'
 
     if (!audioFile) {
       res.status(400).json({ error: 'Arquivo de áudio é obrigatório' })
@@ -27,7 +27,7 @@ router.post('/clone-voice', upload.single('audio'), async (req, res) => {
       new Blob([new Uint8Array(audioFile.buffer)], { type: audioFile.mimetype }),
       audioFile.originalname || 'voice-sample.webm',
     )
-    formData.append('description', 'CAPISCO voice clone')
+    formData.append('description', 'CAPPISCO voice clone')
 
     const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
       method: 'POST',

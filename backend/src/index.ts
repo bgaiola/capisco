@@ -38,7 +38,7 @@ app.get('/{*path}', (_req, res) => {
 })
 
 app.listen(PORT, () => {
-  console.log(`🇮🇹 CAPISCO running on http://localhost:${PORT}`)
+  console.log(`🇪🇸 CAPPISCO running on http://localhost:${PORT}`)
   console.log(`   Tradução: ✅ Google Translate (gratuito)`)
   console.log(`   ElevenLabs API: ${process.env.ELEVENLABS_API_KEY ? '✅ configured' : '❌ missing'}`)
 })

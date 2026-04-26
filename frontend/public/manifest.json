@@ -1,6 +1,6 @@
 {
-  "name": "CAPISCO",
-  "short_name": "CAPISCO",
+  "name": "CAPPISCO",
+  "short_name": "CAPPISCO",
   "description": "Clone your voice and hear yourself speak another language.",
   "start_url": "/",
   "display": "standalone",

@@ -109,7 +109,7 @@ function App() {
   const handleOnboardingComplete = (voiceId: string) => {
     const profile: VoiceProfile = {
       voiceId,
-      name: 'CAPISCO User',
+      name: 'CAPPISCO User',
       createdAt: Date.now(),
     }
     saveVoiceProfile(profile)
@@ -290,7 +290,7 @@ function App() {
       {/* Header */}
       <header className="px-4 sm:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:pb-4 text-center shrink-0">
         <h1 className="font-display text-3xl sm:text-4xl text-ink tracking-tight">
-          CAPISCO
+          CAPPISCO
         </h1>
         <button
           onClick={() => setShowLangSelector(true)}

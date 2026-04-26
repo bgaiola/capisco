@@ -1,5 +1,5 @@
 /**
- * Language system for CAPISCO
+ * Language system for CAPPISCO
  * Three supported languages: English (US), Portuguese (Brazil), Spanish (Spain).
  * The user's native language also drives the UI language.
  */
@@ -67,12 +67,16 @@ export interface LanguagePair {
   target: Language
 }
 
-const STORAGE_NATIVE = 'capisco_native_lang'
-const STORAGE_TARGET = 'capisco_target_lang'
+const STORAGE_NATIVE = 'cappisco_native_lang'
+const STORAGE_TARGET = 'cappisco_target_lang'
+const LEGACY_NATIVE = 'capisco_native_lang'
+const LEGACY_TARGET = 'capisco_target_lang'
 
 export function loadLanguagePair(): LanguagePair {
-  const savedNative = localStorage.getItem(STORAGE_NATIVE)
-  const savedTarget = localStorage.getItem(STORAGE_TARGET)
+  const savedNative =
+    localStorage.getItem(STORAGE_NATIVE) ?? localStorage.getItem(LEGACY_NATIVE)
+  const savedTarget =
+    localStorage.getItem(STORAGE_TARGET) ?? localStorage.getItem(LEGACY_TARGET)
 
   const native = (savedNative && findLang(savedNative)) || findLang(DEFAULT_NATIVE)!
   let target = (savedTarget && findLang(savedTarget)) || findLang(DEFAULT_TARGET)!
@@ -90,5 +94,8 @@ export function saveLanguagePair(pair: LanguagePair): void {
 }
 
 export function hasStoredLanguagePair(): boolean {
-  return localStorage.getItem(STORAGE_NATIVE) !== null
+  return (
+    localStorage.getItem(STORAGE_NATIVE) !== null ||
+    localStorage.getItem(LEGACY_NATIVE) !== null
+  )
 }

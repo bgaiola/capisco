@@ -1,8 +1,8 @@
-# CAPISCO
+# CAPPISCO
 
 **Clone your voice. Speak another language — in your own voice.**
 
-CAPISCO is a small, focused language coach. You speak (or type) a phrase in your language, it translates the phrase, and plays the translation back to you using a clone of your own voice.
+CAPPISCO is a small, focused language coach. You speak (or type) a phrase in your language, it translates the phrase, and plays the translation back to you using a clone of your own voice.
 
 Three supported UI / source / target languages: **🇪🇸 Español (España)**, **🇺🇸 English (US)**, **🇧🇷 Português (Brasil)**. The UI follows whichever you pick as your native language.
 

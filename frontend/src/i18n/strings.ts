@@ -141,7 +141,7 @@ const en: UIStrings = {
   cloningTakesAFewSeconds: 'This may take a few seconds',
   voiceCloned: 'Voice cloned!',
   hearYourVoiceIn: (lang) => `Hear how you sound in ${lang}:`,
-  startUsing: 'Start using CAPISCO',
+  startUsing: 'Start using CAPPISCO',
   enoughTime: 'Enough time',
   minimum30s: 'Minimum: 30s',
 
@@ -211,7 +211,7 @@ const es: UIStrings = {
   cloningTakesAFewSeconds: 'Puede tardar unos segundos',
   voiceCloned: '¡Voz clonada!',
   hearYourVoiceIn: (lang) => `Escucha cómo suenas en ${lang}:`,
-  startUsing: 'Empezar a usar CAPISCO',
+  startUsing: 'Empezar a usar CAPPISCO',
   enoughTime: '¡Suficiente!',
   minimum30s: 'Mínimo: 30s',
 
@@ -281,7 +281,7 @@ const pt: UIStrings = {
   cloningTakesAFewSeconds: 'Pode levar alguns segundos',
   voiceCloned: 'Voz clonada!',
   hearYourVoiceIn: (lang) => `Ouça como você soa em ${lang}:`,
-  startUsing: 'Começar a usar o CAPISCO',
+  startUsing: 'Começar a usar o CAPPISCO',
   enoughTime: 'Tempo suficiente!',
   minimum30s: 'Mínimo: 30s',
 

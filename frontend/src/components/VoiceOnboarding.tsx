@@ -66,7 +66,7 @@ export default function VoiceOnboarding({
     setError(null)
 
     try {
-      const result = await cloneVoice('CAPISCO User', audioBlob)
+      const result = await cloneVoice('CAPPISCO User', audioBlob)
       setVoiceId(result.voiceId)
 
       const previewPhrase = PREVIEW_PHRASES[targetLang.code] ?? "Hello, it's me!"
@@ -92,7 +92,7 @@ export default function VoiceOnboarding({
   return (
     <div className="h-full overflow-y-auto overscroll-contain flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 max-w-lg mx-auto safe-top safe-bottom">
       <h1 className="font-display text-4xl sm:text-5xl text-ink mb-1 sm:mb-2 tracking-tight mt-4 sm:mt-0">
-        CAPISCO
+        CAPPISCO
       </h1>
       <p className="font-mono text-xs sm:text-sm text-warm-gray mb-8 sm:mb-12">{t.voiceSetupTagline}</p>
 

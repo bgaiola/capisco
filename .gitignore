@@ -23,7 +23,7 @@ Thumbs.db
 nohup.out
 
 # PID files
-/tmp/capisco-pids.txt
+/tmp/cappisco-pids.txt
 
 # Lock files (keep only root)
 frontend/package-lock.json

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'capisco-v2'
+const CACHE_NAME = 'cappisco-v1'
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json']
 
 self.addEventListener('install', (event) => {
