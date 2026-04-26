@@ -8,6 +8,8 @@ Three supported UI / source / target languages: **🇪🇸 Español (España)**,
 
 ![Status](https://img.shields.io/badge/status-beta-orange) ![React](https://img.shields.io/badge/React-19-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bgaiola/capisco)
+
 ## How it works
 
 1. **Pick your languages** — what you speak, what you want to learn.
