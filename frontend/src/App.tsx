@@ -1,15 +1,20 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import VoiceOnboarding from './components/VoiceOnboarding'
+import PartnerOnboarding from './components/PartnerOnboarding'
 import LanguageSelector from './components/LanguageSelector'
 import MicButton from './components/MicButton'
 import TranscriptCard from './components/TranscriptCard'
 import AudioVisualizer from './components/AudioVisualizer'
 import HistoryList from './components/HistoryList'
+import ConversationMode from './components/ConversationMode'
+import HelpModal from './components/HelpModal'
+import HelpButton from './components/HelpButton'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
 import { useAudioPlayer } from './hooks/useAudioPlayer'
 import { translateText } from './services/claude'
 import { synthesizeSpeech, speakWithFallback } from './services/elevenlabs'
 import {
+  findLang,
   loadLanguagePair,
   saveLanguagePair,
   hasStoredLanguagePair,
@@ -23,33 +28,45 @@ import {
   wasVoiceSkipped,
   loadHistory,
   saveHistory,
+  loadPartner,
+  savePartner,
+  clearPartner,
+  loadConversation,
+  saveConversation,
+  hasSeenTutorial,
+  markTutorialSeen,
 } from './services/voiceStorage'
 import { getStrings } from './i18n/strings'
-import type { Translation, AppTab, TranslationStep, VoiceProfile } from './types'
+import type {
+  Translation,
+  AppTab,
+  TranslationStep,
+  VoiceProfile,
+  ConversationPartner,
+  ConversationTurn,
+} from './types'
 
 function App() {
-  // Language pair (drives both translation and UI language)
   const [langPair, setLangPair] = useState<LanguagePair>(loadLanguagePair)
   const [showLangSelector, setShowLangSelector] = useState(() => !hasStoredLanguagePair())
-
-  // i18n strings tied to native language
   const t = useMemo(() => getStrings(langPair.native.code), [langPair.native.code])
 
-  // Voice profile
   const [voiceProfile, setVoiceProfile] = useState<VoiceProfile | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showPartnerOnboarding, setShowPartnerOnboarding] = useState(false)
 
-  // Tabs
+  const [partner, setPartner] = useState<ConversationPartner | null>(null)
+  const [conversation, setConversation] = useState<ConversationTurn[]>([])
+
   const [activeTab, setActiveTab] = useState<AppTab>('voice')
+  const [helpOpen, setHelpOpen] = useState(false)
 
-  // Translation state
   const [step, setStep] = useState<TranslationStep>('idle')
   const [currentTranslation, setCurrentTranslation] = useState<Translation | null>(null)
   const [textInput, setTextInput] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [usedFallback, setUsedFallback] = useState(false)
 
-  // History
   const [history, setHistory] = useState<Translation[]>([])
   const [playingId, setPlayingId] = useState<string | null>(null)
 
@@ -62,6 +79,7 @@ function App() {
     stopListening,
     resetTranscript,
   } = useSpeechRecognition(langPair.native.speechCode)
+  const { isPlaying, play } = useAudioPlayer()
 
   const localizedSpeechError = (() => {
     switch (speechErrorCode) {
@@ -77,28 +95,50 @@ function App() {
         return null
     }
   })()
-  const { isPlaying, play } = useAudioPlayer()
 
-  // Restore voice profile + history once on mount
+  // Restore persisted state once
   useEffect(() => {
     setVoiceProfile(loadVoiceProfile())
     setHistory(loadHistory<Translation>())
+    setPartner(loadPartner())
+    setConversation(loadConversation())
   }, [])
 
-  // After language selection, decide whether to show onboarding
   useEffect(() => {
     if (!showLangSelector) {
       const profile = loadVoiceProfile()
-      if (!profile && !wasVoiceSkipped()) {
-        setShowOnboarding(true)
-      }
+      if (!profile && !wasVoiceSkipped()) setShowOnboarding(true)
     }
   }, [showLangSelector])
 
-  // Persist history
   useEffect(() => {
     if (history.length > 0) saveHistory(history)
   }, [history])
+
+  useEffect(() => {
+    saveConversation(conversation)
+  }, [conversation])
+
+  // Auto-open the help modal first time the user visits each mode
+  useEffect(() => {
+    if (showLangSelector || showOnboarding || showPartnerOnboarding) return
+    const tutKey = `tab_${activeTab}`
+    if (!hasSeenTutorial(tutKey)) {
+      // Avoid showing the help modal on the empty-history view (it has no tutorial)
+      if (activeTab === 'history') {
+        markTutorialSeen(tutKey)
+        return
+      }
+      setHelpOpen(true)
+      markTutorialSeen(tutKey)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, showLangSelector, showOnboarding, showPartnerOnboarding])
+
+  const partnerLanguage = useMemo(
+    () => (partner ? findLang(partner.langSpeechCode) ?? null : null),
+    [partner],
+  )
 
   const handleLangConfirm = (pair: LanguagePair) => {
     setLangPair(pair)
@@ -129,10 +169,22 @@ function App() {
     setShowOnboarding(true)
   }
 
+  const handlePartnerComplete = (newPartner: ConversationPartner) => {
+    savePartner(newPartner)
+    setPartner(newPartner)
+    setShowPartnerOnboarding(false)
+  }
+
+  const handleChangePartner = () => {
+    if (!window.confirm(t.changePartner + '?')) return
+    clearPartner()
+    setPartner(null)
+    setShowPartnerOnboarding(true)
+  }
+
   const processTranslation = useCallback(
     async (text: string) => {
       if (!text.trim()) return
-
       setErrorMsg(null)
       setUsedFallback(false)
       setCurrentTranslation(null)
@@ -140,7 +192,6 @@ function App() {
       try {
         setStep('translating')
         const result = await translateText(text, langPair.native.code, langPair.target.code)
-
         const translation: Translation = {
           id: Date.now().toString(),
           originalText: text,
@@ -148,7 +199,6 @@ function App() {
           notes: result.notas,
           timestamp: Date.now(),
         }
-
         setCurrentTranslation(translation)
 
         setStep('synthesizing')
@@ -184,10 +234,10 @@ function App() {
   )
 
   useEffect(() => {
-    if (!isListening && transcript && (step === 'transcribing' || step === 'recording')) {
+    if (!isListening && transcript && (step === 'transcribing' || step === 'recording') && activeTab === 'voice') {
       processTranslation(transcript)
     }
-  }, [isListening, transcript, step, processTranslation])
+  }, [isListening, transcript, step, processTranslation, activeTab])
 
   const handleMicClick = () => {
     if (isListening) {
@@ -210,14 +260,11 @@ function App() {
   }
 
   const handleTextKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      handleTextSubmit()
-    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleTextSubmit()
   }
 
   const handlePlayHistory = (translation: Translation) => {
     setPlayingId(translation.id)
-
     if (translation.audioUrl) {
       play(translation.audioUrl)
       setTimeout(() => setPlayingId(null), 3000)
@@ -268,8 +315,21 @@ function App() {
     )
   }
 
+  if (showPartnerOnboarding) {
+    return (
+      <PartnerOnboarding
+        myLanguage={langPair.native}
+        defaultPartnerLanguage={langPair.target}
+        onComplete={handlePartnerComplete}
+        onCancel={() => setShowPartnerOnboarding(false)}
+        strings={t}
+      />
+    )
+  }
+
   const tabItems: { id: AppTab; label: string; icon: string }[] = [
     { id: 'voice', label: t.tabVoice, icon: '🎤' },
+    { id: 'conversation', label: t.tabConversation, icon: '💬' },
     { id: 'text', label: t.tabText, icon: '✏️' },
     { id: 'history', label: t.tabHistory, icon: '📜' },
   ]
@@ -285,13 +345,24 @@ function App() {
     error: `❌ ${t.errorStatus}`,
   }
 
+  const tutorialFor = (tab: AppTab) => {
+    switch (tab) {
+      case 'voice':
+        return { title: t.voiceTutorialTitle, steps: t.voiceTutorialSteps }
+      case 'conversation':
+        return { title: t.conversationTutorialTitle, steps: t.conversationTutorialSteps }
+      case 'text':
+        return { title: t.textTutorialTitle, steps: t.textTutorialSteps }
+      default:
+        return null
+    }
+  }
+  const tutorial = tutorialFor(activeTab)
+
   return (
     <div className="h-full flex flex-col max-w-lg mx-auto relative">
-      {/* Header */}
       <header className="px-4 sm:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:pb-4 text-center shrink-0">
-        <h1 className="font-display text-3xl sm:text-4xl text-ink tracking-tight">
-          CAPPISCO
-        </h1>
+        <h1 className="font-display text-3xl sm:text-4xl text-ink tracking-tight">CAPPISCO</h1>
         <button
           onClick={() => setShowLangSelector(true)}
           className="font-mono text-[10px] sm:text-xs text-warm-gray mt-0.5 hover:text-terracotta transition-colors cursor-pointer"
@@ -317,12 +388,12 @@ function App() {
       </header>
 
       {/* Desktop tabs */}
-      <nav className="hidden sm:flex px-6 gap-1 mb-6 shrink-0">
+      <nav className="hidden sm:flex px-6 gap-1 mb-6 shrink-0 items-center">
         {tabItems.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-3 px-4 rounded-xl font-body text-sm font-medium transition-all cursor-pointer ${
+            className={`flex-1 py-3 px-3 rounded-xl font-body text-sm font-medium transition-all cursor-pointer ${
               activeTab === tab.id
                 ? 'bg-terracotta text-white shadow-[0_8px_24px_-12px_rgba(196,96,58,0.6)]'
                 : 'text-warm-gray hover:bg-warm-gray/10'
@@ -332,9 +403,20 @@ function App() {
             {tab.label}
           </button>
         ))}
+        {tutorial && (
+          <div className="ml-1">
+            <HelpButton onClick={() => setHelpOpen(true)} label={t.showHelp} />
+          </div>
+        )}
       </nav>
 
-      {/* Content */}
+      {/* Mobile help button — top-right of content area */}
+      {tutorial && (
+        <div className="sm:hidden flex justify-end px-4 -mb-2 shrink-0">
+          <HelpButton onClick={() => setHelpOpen(true)} label={t.showHelp} />
+        </div>
+      )}
+
       <main className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 pb-24 sm:pb-8">
         {activeTab === 'voice' && (
           <div className="flex flex-col items-center">
@@ -398,6 +480,21 @@ function App() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'conversation' && (
+          <ConversationMode
+            myLanguage={langPair.native}
+            myVoice={voiceProfile}
+            partner={partner}
+            partnerLanguage={partnerLanguage}
+            conversation={conversation}
+            setConversation={setConversation}
+            onAddPartner={() => setShowPartnerOnboarding(true)}
+            onChangePartner={handleChangePartner}
+            onSetUpMyVoice={handleResetVoice}
+            strings={t}
+          />
         )}
 
         {activeTab === 'text' && (
@@ -481,6 +578,16 @@ function App() {
           ))}
         </div>
       </nav>
+
+      {tutorial && (
+        <HelpModal
+          open={helpOpen}
+          onClose={() => setHelpOpen(false)}
+          title={tutorial.title}
+          steps={tutorial.steps}
+          strings={t}
+        />
+      )}
     </div>
   )
 }

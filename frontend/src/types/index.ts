@@ -13,7 +13,30 @@ export interface VoiceProfile {
   createdAt: number
 }
 
-export type AppTab = 'voice' | 'text' | 'history'
+/**
+ * A second voice cloned for use in Conversation mode. Includes the speech
+ * code (e.g. 'it-IT') so we know which language to recognize when this
+ * person taps the mic.
+ */
+export interface ConversationPartner {
+  voiceId: string
+  name: string
+  langSpeechCode: string
+  createdAt: number
+}
+
+export type ConversationSpeaker = 'me' | 'partner'
+
+export interface ConversationTurn {
+  id: string
+  speaker: ConversationSpeaker
+  originalText: string
+  translatedText: string
+  audioUrl?: string
+  timestamp: number
+}
+
+export type AppTab = 'voice' | 'conversation' | 'text' | 'history'
 
 export type TranslationStep =
   | 'idle'
