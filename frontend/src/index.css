@@ -19,29 +19,34 @@
   --font-body: "Instrument Sans", -apple-system, sans-serif;
 }
 
-/* ===== Base Styles ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
+/* ===== Base Styles =====
+ * NOTE: rules live inside @layer base so Tailwind utilities (margin/padding/etc.)
+ * keep their precedence on top of these resets. Without the layer, a bare
+ * `* { padding: 0 }` would beat every utility because un-layered rules trump
+ * any layered ones in the cascade. */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    min-height: 100%;
+    font-family: var(--font-body);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
-html, body {
-  min-height: 100%;
-  font-family: var(--font-body);
-  color: var(--color-ink);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  background-color: var(--color-crema);
-  background-image:
-    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(196, 96, 58, 0.08), transparent 60%),
-    radial-gradient(ellipse 70% 50% at 80% 100%, rgba(184, 134, 11, 0.06), transparent 60%),
-    linear-gradient(180deg, var(--color-crema) 0%, var(--color-crema-dark) 100%);
-  background-attachment: fixed;
+@layer base {
+  body {
+    background-color: var(--color-crema);
+    background-image:
+      radial-gradient(ellipse 80% 60% at 20% 0%, rgba(196, 96, 58, 0.08), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 80% 100%, rgba(184, 134, 11, 0.06), transparent 60%),
+      linear-gradient(180deg, var(--color-crema) 0%, var(--color-crema-dark) 100%);
+    background-attachment: fixed;
+  }
 }
 
 /* The /app route locks scrolling to its own container — body wears a class to opt in. */
