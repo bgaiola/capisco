@@ -11,6 +11,7 @@ import SignupPage from './pages/SignupPage'
 import AccountPage from './pages/AccountPage'
 import { PrivacyPage, TermsPage } from './pages/LegalPages'
 import { AuthProvider } from './contexts/AuthContext'
+import { LocaleProvider } from './contexts/LocaleContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import { initAnalytics, trackPageView } from './services/analytics'
 
@@ -28,36 +29,38 @@ function Root() {
   }, [])
 
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <PageViewTracker />
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route
-            path="/account"
-            element={
-              <ProtectedRoute>
-                <AccountPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/app"
-            element={
-              <ProtectedRoute>
-                <App />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/legal/privacy" element={<PrivacyPage />} />
-          <Route path="/legal/terms" element={<TermsPage />} />
-          <Route path="*" element={<LandingPage />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <LocaleProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <PageViewTracker />
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route
+              path="/account"
+              element={
+                <ProtectedRoute>
+                  <AccountPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app"
+              element={
+                <ProtectedRoute>
+                  <App />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/legal/privacy" element={<PrivacyPage />} />
+            <Route path="/legal/terms" element={<TermsPage />} />
+            <Route path="*" element={<LandingPage />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </LocaleProvider>
   )
 }
 

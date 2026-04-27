@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useLocale } from '../../contexts/LocaleContext'
 
 export default function UpgradeBanner() {
   const { user } = useAuth()
+  const { t } = useLocale()
   if (!user || user.tier === 'pro') return null
 
   if (user.tier === 'free') {
@@ -13,15 +15,14 @@ export default function UpgradeBanner() {
       >
         <div className="flex items-center justify-between gap-3">
           <span className="text-xs sm:text-sm">
-            ✨ <strong>Upgrade to Basic</strong> for voice cloning and unlimited translations
+            ✨ <strong>{t.bannerFree}</strong> — {t.featTalkBody.split('.')[0]}
           </span>
-          <span className="text-xs text-terracotta whitespace-nowrap">See plans →</span>
+          <span className="text-xs text-terracotta whitespace-nowrap">{t.bannerSeePlans}</span>
         </div>
       </Link>
     )
   }
 
-  // Basic tier: nudge towards Pro for Talk mode
   return (
     <Link
       to="/pricing"
@@ -29,9 +30,9 @@ export default function UpgradeBanner() {
     >
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs sm:text-sm">
-          💬 <strong>Talk mode</strong> — real-time two-way conversations on Pro
+          💬 <strong>{t.bannerBasic}</strong> — Pro
         </span>
-        <span className="text-xs text-ink whitespace-nowrap">Upgrade →</span>
+        <span className="text-xs text-ink whitespace-nowrap">{t.bannerUpgrade}</span>
       </div>
     </Link>
   )

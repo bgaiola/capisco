@@ -3,10 +3,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import MarketingNav from '../components/marketing/MarketingNav'
 import SEO from '../components/marketing/SEO'
 import { useAuth } from '../contexts/AuthContext'
+import { useLocale } from '../contexts/LocaleContext'
 import { ApiError } from '../services/api'
 
 export default function LoginPage() {
   const { login } = useAuth()
+  const { t } = useLocale()
   const navigate = useNavigate()
   const [search] = useSearchParams()
   const next = search.get('next') ?? '/app'
@@ -24,22 +26,22 @@ export default function LoginPage() {
       await login(email.trim(), password)
       navigate(next, { replace: true })
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Login failed.')
+      setError(e instanceof ApiError ? e.message : t.loginFailed)
       setSubmitting(false)
     }
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-crema text-ink">
-      <SEO title="Log in" noindex />
+      <SEO title={t.loginPageTitle} noindex />
       <MarketingNav />
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md bg-white rounded-2xl border border-warm-gray-light/30 p-6 sm:p-8 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.2)]">
-          <h1 className="font-display text-3xl tracking-tight">Welcome back</h1>
-          <p className="text-warm-gray text-sm mt-1">Log in to continue.</p>
+          <h1 className="font-display text-3xl tracking-tight">{t.loginWelcome}</h1>
+          <p className="text-warm-gray text-sm mt-1">{t.loginSubtitle}</p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
-            <Field label="Email">
+            <Field label={t.authEmail}>
               <input
                 type="email"
                 value={email}
@@ -49,7 +51,7 @@ export default function LoginPage() {
                 className="input"
               />
             </Field>
-            <Field label="Password">
+            <Field label={t.authPassword}>
               <input
                 type="password"
                 value={password}
@@ -67,14 +69,17 @@ export default function LoginPage() {
               disabled={submitting}
               className="w-full px-5 py-3 rounded-xl bg-terracotta text-white font-medium hover:bg-terracotta-dark active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
             >
-              {submitting ? 'Logging in…' : 'Log in'}
+              {submitting ? t.loginSubmitting : t.loginCta}
             </button>
           </form>
 
           <p className="text-sm text-warm-gray mt-6 text-center">
-            New here?{' '}
-            <Link to={`/signup${next ? `?next=${encodeURIComponent(next)}` : ''}`} className="text-terracotta hover:underline">
-              Create an account
+            {t.loginNoAccount}{' '}
+            <Link
+              to={`/signup${next ? `?next=${encodeURIComponent(next)}` : ''}`}
+              className="text-terracotta hover:underline"
+            >
+              {t.loginCreate}
             </Link>
           </p>
         </div>

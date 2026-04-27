@@ -3,204 +3,157 @@ import MarketingNav from '../components/marketing/MarketingNav'
 import MarketingFooter from '../components/marketing/MarketingFooter'
 import SEO from '../components/marketing/SEO'
 import { useAuth } from '../contexts/AuthContext'
+import { useLocale } from '../contexts/LocaleContext'
 
 export default function LandingPage() {
   const { user } = useAuth()
+  const { t } = useLocale()
   const ctaTo = user ? '/app' : '/signup'
-  const ctaText = user ? 'Open the app' : 'Start free — no card needed'
+  const ctaText = user ? t.heroCtaApp : t.heroCtaFree
 
   return (
     <div className="min-h-screen flex flex-col bg-crema text-ink">
-      <SEO />
+      <SEO description={t.heroSubtitle} />
       <MarketingNav />
 
-      {/* Hero */}
-      <section className="px-4 sm:px-6 pt-12 sm:pt-20 pb-16 sm:pb-24">
-        <div className="max-w-5xl mx-auto text-center">
-          <span className="inline-block font-mono text-xs uppercase tracking-widest text-terracotta bg-terracotta/10 px-3 py-1 rounded-full mb-6">
-            Voice cloning · Real-time translation
-          </span>
-          <h1 className="font-display text-5xl sm:text-7xl leading-[1.05] tracking-tight">
-            Speak any language
-            <span className="block text-terracotta mt-2">in your own voice.</span>
-          </h1>
-          <p className="font-body text-lg sm:text-xl text-warm-gray mt-6 sm:mt-8 max-w-2xl mx-auto">
-            CAPPISCO clones your voice once and lets you hear yourself speaking Italian, Spanish,
-            French, English, Portuguese and more. Real-time, two-way, with cultural notes.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              to={ctaTo}
-              className="px-8 py-4 rounded-2xl bg-terracotta text-white font-medium hover:bg-terracotta-dark active:scale-95 transition-all shadow-[0_12px_32px_-12px_rgba(196,96,58,0.6)] w-full sm:w-auto"
-            >
-              {ctaText}
-            </Link>
-            <Link
-              to="/pricing"
-              className="px-8 py-4 rounded-2xl border border-warm-gray-light/40 text-ink hover:bg-white/60 transition-all w-full sm:w-auto"
-            >
-              See pricing
-            </Link>
+      {/* ===== HERO — split layout ===== */}
+      <section className="px-4 sm:px-6 pt-10 sm:pt-16 lg:pt-20 pb-14 sm:pb-20">
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-16 items-center">
+          {/* Copy column */}
+          <div className="text-center lg:text-left">
+            <span className="inline-block font-mono text-[10px] sm:text-xs uppercase tracking-widest text-terracotta bg-terracotta/10 px-3 py-1 rounded-full mb-5 sm:mb-6">
+              {t.heroBadge}
+            </span>
+            <h1 className="font-display text-[2.5rem] leading-[1.05] sm:text-6xl lg:text-7xl tracking-tight">
+              {t.heroTitle1}
+              <span className="block text-terracotta mt-1 sm:mt-2 italic">{t.heroTitle2}</span>
+            </h1>
+            <p className="font-body text-base sm:text-lg lg:text-xl text-warm-gray mt-5 sm:mt-7 max-w-xl mx-auto lg:mx-0">
+              {t.heroSubtitle}
+            </p>
+            <div className="mt-7 sm:mt-9 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
+              <Link
+                to={ctaTo}
+                className="px-6 sm:px-7 py-3.5 sm:py-4 rounded-2xl bg-terracotta text-white font-medium text-center hover:bg-terracotta-dark active:scale-95 transition-all shadow-[0_12px_32px_-12px_rgba(196,96,58,0.6)] text-base"
+              >
+                {ctaText}
+              </Link>
+              <Link
+                to="/pricing"
+                className="px-6 sm:px-7 py-3.5 sm:py-4 rounded-2xl border border-warm-gray-light/40 text-ink hover:bg-white/60 transition-all text-center text-base"
+              >
+                {t.heroCtaPricing}
+              </Link>
+            </div>
+            <div className="mt-7 flex items-center justify-center lg:justify-start gap-3 sm:gap-5 text-base sm:text-lg flex-wrap">
+              {['🇮🇹', '🇪🇸', '🇺🇸', '🇧🇷', '🇫🇷', '🇨🇳', '🇷🇺', '🇳🇱', '🇵🇹'].map((flag) => (
+                <span key={flag} className="opacity-80">{flag}</span>
+              ))}
+            </div>
           </div>
-          <div className="mt-8 flex items-center justify-center gap-6 text-xs sm:text-sm text-warm-gray">
-            <span>🇮🇹 IT</span><span>🇪🇸 ES</span><span>🇺🇸 EN</span><span>🇧🇷 PT</span><span>🇫🇷 FR</span><span className="hidden sm:inline">🇨🇳 ZH</span><span className="hidden sm:inline">🇷🇺 RU</span><span className="hidden sm:inline">🇳🇱 NL</span>
-          </div>
+
+          {/* Demo card */}
+          <DemoCard t={t} />
         </div>
       </section>
 
-      {/* How it works */}
+      {/* ===== HOW IT WORKS ===== */}
       <section id="how" className="px-4 sm:px-6 py-16 sm:py-24 bg-white/40 border-y border-warm-gray-light/20">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="font-display text-3xl sm:text-5xl text-center tracking-tight">How it works</h2>
-          <p className="text-warm-gray text-center mt-3 max-w-xl mx-auto">
-            Three steps. About a minute the first time. Then it just works.
-          </p>
-          <div className="grid md:grid-cols-3 gap-6 mt-12">
-            <Step n={1} emoji="🎙️" title="Record once">
-              Read a short passage out loud — about 30 seconds. We create a personal voice profile
-              tied to your account.
-            </Step>
-            <Step n={2} emoji="🔁" title="Translate anything">
-              Speak or type a phrase. We translate it into the language you're learning, with
-              cultural notes for tricky idioms.
-            </Step>
-            <Step n={3} emoji="🔊" title="Hear yourself">
-              The translation plays back in <em>your own voice</em>. Hear what you sound like in
-              another language — instantly.
-            </Step>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="font-display text-3xl sm:text-5xl tracking-tight">{t.howTitle}</h2>
+            <p className="text-warm-gray mt-3">{t.howSubtitle}</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-10 sm:mt-14">
+            <Step n={1} emoji="🎙️" title={t.howStep1Title} body={t.howStep1Body} />
+            <Step n={2} emoji="🔁" title={t.howStep2Title} body={t.howStep2Body} />
+            <Step n={3} emoji="🔊" title={t.howStep3Title} body={t.howStep3Body} />
           </div>
         </div>
       </section>
 
-      {/* Features */}
+      {/* ===== FEATURES ===== */}
       <section className="px-4 sm:px-6 py-16 sm:py-24">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="font-display text-3xl sm:text-5xl tracking-tight text-center">Built for real conversations</h2>
-          <div className="grid md:grid-cols-2 gap-6 mt-12">
-            <Feature emoji="💬" title="Talk mode (Pro)">
-              A real-time, two-way translator. Each person speaks their own language; the other
-              hears it — in the speaker's own voice. Hand the phone over and keep the chat going.
-            </Feature>
-            <Feature emoji="📚" title="Phrase packs">
-              Travel, restaurants, business, small talk. Curated phrases ready to practice in your
-              voice — perfect for trips and presentations.
-            </Feature>
-            <Feature emoji="🔥" title="Daily streak">
-              Practice every day, build the streak. Small dopamine hits, big language gains.
-            </Feature>
-            <Feature emoji="🎁" title="Refer friends, get a free month">
-              Share your code. Friends get 14 days free; you get a month off your subscription for
-              every paid signup.
-            </Feature>
-            <Feature emoji="🔒" title="Private by design">
-              Your voice clone is bound to your account. We never share or train on your voice.
-              Cancel anytime, full deletion in one click.
-            </Feature>
-            <Feature emoji="📱" title="Mobile-first PWA">
-              Works in the browser, installs to your home screen. No app store, no waiting.
-            </Feature>
+        <div className="max-w-6xl mx-auto">
+          <h2 className="font-display text-3xl sm:text-5xl tracking-tight text-center max-w-3xl mx-auto">
+            {t.featuresTitle}
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-10 sm:mt-14">
+            <Feature emoji="💬" title={t.featTalkTitle} body={t.featTalkBody} />
+            <Feature emoji="📚" title={t.featPacksTitle} body={t.featPacksBody} />
+            <Feature emoji="🔥" title={t.featStreakTitle} body={t.featStreakBody} />
+            <Feature emoji="🎁" title={t.featReferTitle} body={t.featReferBody} />
+            <Feature emoji="🔒" title={t.featPrivacyTitle} body={t.featPrivacyBody} />
+            <Feature emoji="📱" title={t.featPwaTitle} body={t.featPwaBody} />
           </div>
         </div>
       </section>
 
-      {/* Pricing teaser */}
-      <section id="pricing" className="px-4 sm:px-6 py-16 sm:py-24 bg-white/40 border-y border-warm-gray-light/20">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="font-display text-3xl sm:text-5xl tracking-tight text-center">Pricing</h2>
-          <p className="text-warm-gray text-center mt-3 max-w-xl mx-auto">
-            Start free. Unlock voice cloning on Basic. Add the two-way Talk mode on Pro.
-          </p>
+      {/* ===== PRICING TEASER ===== */}
+      <section
+        id="pricing"
+        className="px-4 sm:px-6 py-16 sm:py-24 bg-white/40 border-y border-warm-gray-light/20"
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="font-display text-3xl sm:text-5xl tracking-tight">{t.pricingTitle}</h2>
+            <p className="text-warm-gray mt-3">{t.pricingSubtitle}</p>
+          </div>
 
-          <div className="grid md:grid-cols-3 gap-4 sm:gap-6 mt-12">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-10 sm:mt-14">
             <PriceCard
-              name="Free"
-              price="$0"
-              tagline="See it in action"
-              cta={user ? 'Open the app' : 'Start free'}
+              name={t.pricingFreeName}
+              price={t.pricingPriceFree}
+              tagline={t.pricingFreeTagline}
+              cta={user ? t.pricingFreeCtaUser : t.pricingFreeCtaGuest}
               ctaTo={ctaTo}
-              features={[
-                '5 translations / day',
-                'System voice (your phone\'s)',
-                'Cultural notes',
-                'All 9 languages',
-              ]}
+              features={t.planFreeTeaserFeats}
             />
             <PriceCard
-              name="Basic"
-              price="$9.99"
-              cadence="/month"
-              tagline="Your own voice, unlimited"
+              name={t.pricingBasicName}
+              price={t.pricingPriceBasic}
+              cadence={t.pricingPriceBasicCadence}
+              tagline={t.pricingBasicTagline}
               accent
-              cta="Choose Basic"
+              cta={t.pricingBasicCta}
               ctaTo="/pricing"
-              features={[
-                'Everything in Free',
-                'Clone your voice (ElevenLabs)',
-                'Unlimited translations',
-                'Phrase packs',
-                'Download MP3 audio',
-              ]}
+              features={t.planBasicTeaserFeats}
             />
             <PriceCard
-              name="Pro"
-              price="$19.99"
-              cadence="/month"
-              tagline="Two voices, two languages"
-              cta="Choose Pro"
+              name={t.pricingProName}
+              price={t.pricingPricePro}
+              cadence={t.pricingPriceProCadence}
+              tagline={t.pricingProTagline}
+              cta={t.pricingProCta}
               ctaTo="/pricing"
-              features={[
-                'Everything in Basic',
-                '✨ Talk mode (real-time chat)',
-                'Clone a partner\'s voice',
-                'Higher monthly limits',
-                'Priority support',
-              ]}
+              features={t.planProTeaserFeats}
             />
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* ===== FAQ ===== */}
       <section id="faq" className="px-4 sm:px-6 py-16 sm:py-24">
         <div className="max-w-3xl mx-auto">
-          <h2 className="font-display text-3xl sm:text-5xl tracking-tight text-center">Questions</h2>
-          <div className="mt-10 space-y-4">
-            <Faq q="Is it really my voice?">
-              Yes. We use ElevenLabs voice cloning under the hood — about 30 seconds of clear
-              speech is enough. Your clone is tied to your account.
-            </Faq>
-            <Faq q="What's the difference between Basic and Pro?">
-              Basic gives you voice cloning for yourself, unlimited translations and phrase packs.
-              Pro adds <em>Talk mode</em>: clone a partner's voice too and have a real two-way
-              translated conversation, where each person hears the other in the speaker's own
-              voice.
-            </Faq>
-            <Faq q="Can I cancel anytime?">
-              Yes. Manage everything from the account dashboard — change plan, update card, or
-              cancel. No phone calls.
-            </Faq>
-            <Faq q="What about my privacy?">
-              Your voice clone lives in your account and is never shared. We don't train models on
-              your data. You can delete your account and all clones at any time.
-            </Faq>
-            <Faq q="Which browsers work?">
-              Anything modern. Voice mode requires Chrome/Edge for speech recognition; text mode
-              works everywhere including Safari.
-            </Faq>
+          <h2 className="font-display text-3xl sm:text-5xl tracking-tight text-center">{t.faqTitle}</h2>
+          <div className="mt-10 space-y-3 sm:space-y-4">
+            <Faq q={t.faqQ1} a={t.faqA1} />
+            <Faq q={t.faqQ2} a={t.faqA2} />
+            <Faq q={t.faqQ3} a={t.faqA3} />
+            <Faq q={t.faqQ4} a={t.faqA4} />
+            <Faq q={t.faqQ5} a={t.faqA5} />
           </div>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="px-4 sm:px-6 py-20 sm:py-24 bg-terracotta text-white">
+      {/* ===== FINAL CTA ===== */}
+      <section className="px-4 sm:px-6 py-16 sm:py-24 bg-terracotta text-white">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="font-display text-3xl sm:text-5xl tracking-tight">
-            Hear yourself speak another language.
-          </h2>
-          <p className="text-white/80 mt-4 text-lg">It's strangely magical. Try it free.</p>
+          <h2 className="font-display text-3xl sm:text-5xl tracking-tight">{t.finalCtaTitle}</h2>
+          <p className="text-white/85 mt-4 text-base sm:text-lg">{t.finalCtaSubtitle}</p>
           <Link
             to={ctaTo}
-            className="inline-block mt-8 px-8 py-4 rounded-2xl bg-white text-terracotta font-medium hover:bg-white/90 transition-all"
+            className="inline-block mt-7 sm:mt-9 px-7 py-4 rounded-2xl bg-white text-terracotta font-medium hover:bg-white/90 transition-all"
           >
             {ctaText}
           </Link>
@@ -212,25 +165,107 @@ export default function LandingPage() {
   )
 }
 
-function Step({ n, emoji, title, children }: { n: number; emoji: string; title: string; children: React.ReactNode }) {
+/* ---------- visual demo (the “wow” card on hero) ---------- */
+function DemoCard({ t }: { t: ReturnType<typeof useLocale>['t'] }) {
   return (
-    <div className="bg-white/70 rounded-2xl p-6 border border-warm-gray-light/30">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="font-mono text-xs text-terracotta">0{n}</span>
-        <span className="text-3xl">{emoji}</span>
+    <div className="relative">
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-terracotta/15 via-gold/10 to-transparent rounded-[2rem] blur-2xl" />
+      <div className="bg-white rounded-3xl border border-warm-gray-light/30 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.25)] p-5 sm:p-6 max-w-md mx-auto lg:max-w-none">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+          <span className="font-mono text-[10px] uppercase tracking-wider text-warm-gray">
+            {t.heroBadge.split('·')[0]?.trim()}
+          </span>
+        </div>
+
+        <DemoBubble side="me" lang="🇧🇷 PT" text="Você quer um café?" />
+        <DemoBubble side="them" lang="🇮🇹 IT" text="Vuoi un caffè?" emphasized />
+
+        <div className="mt-3 flex items-end gap-0.5 h-5">
+          {[0.4, 0.7, 1, 0.65, 0.85, 0.5, 0.7].map((h, i) => (
+            <span
+              key={i}
+              className="w-1 bg-terracotta/80 rounded-full"
+              style={{ height: `${h * 100}%` }}
+            />
+          ))}
+          <span className="ml-2 text-[10px] font-mono text-warm-gray">
+            {t.howStep3Title.toLowerCase()}
+          </span>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-warm-gray-light/20 grid grid-cols-3 gap-2 text-[10px] sm:text-xs">
+          <DemoStat emoji="🎙️" label="30s" />
+          <DemoStat emoji="🌍" label="9 idiomas" />
+          <DemoStat emoji="⚡️" label="instant" />
+        </div>
       </div>
-      <h3 className="font-display text-xl mb-2">{title}</h3>
-      <p className="text-warm-gray text-sm">{children}</p>
     </div>
   )
 }
 
-function Feature({ emoji, title, children }: { emoji: string; title: string; children: React.ReactNode }) {
+function DemoBubble({
+  side,
+  lang,
+  text,
+  emphasized,
+}: {
+  side: 'me' | 'them'
+  lang: string
+  text: string
+  emphasized?: boolean
+}) {
+  const isMe = side === 'me'
   return (
-    <div className="bg-white/70 rounded-2xl p-6 border border-warm-gray-light/30">
-      <div className="text-3xl mb-3">{emoji}</div>
+    <div className={`mb-2 flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm sm:text-base ${
+          isMe
+            ? 'bg-warm-gray/10 text-ink rounded-br-md'
+            : emphasized
+              ? 'bg-terracotta text-white rounded-bl-md shadow-[0_10px_24px_-12px_rgba(196,96,58,0.6)]'
+              : 'bg-warm-gray/10 text-ink rounded-bl-md'
+        }`}
+      >
+        <div className={`text-[10px] font-mono uppercase tracking-wider mb-0.5 ${
+          isMe ? 'text-warm-gray-light' : emphasized ? 'text-white/80' : 'text-warm-gray-light'
+        }`}>
+          {lang}
+        </div>
+        <div className={emphasized ? 'italic font-display text-lg sm:text-xl' : ''}>{text}</div>
+      </div>
+    </div>
+  )
+}
+
+function DemoStat({ emoji, label }: { emoji: string; label: string }) {
+  return (
+    <div className="text-center">
+      <div className="text-base">{emoji}</div>
+      <div className="text-warm-gray mt-0.5">{label}</div>
+    </div>
+  )
+}
+
+function Step({ n, emoji, title, body }: { n: number; emoji: string; title: string; body: string }) {
+  return (
+    <div className="bg-white/70 rounded-2xl p-5 sm:p-6 border border-warm-gray-light/30 hover:border-terracotta/30 transition-colors h-full">
+      <div className="flex items-center gap-2 mb-3 sm:mb-4">
+        <span className="font-mono text-xs text-terracotta">0{n}</span>
+        <span className="text-3xl">{emoji}</span>
+      </div>
       <h3 className="font-display text-xl mb-2">{title}</h3>
-      <p className="text-warm-gray text-sm">{children}</p>
+      <p className="text-warm-gray text-sm leading-relaxed">{body}</p>
+    </div>
+  )
+}
+
+function Feature({ emoji, title, body }: { emoji: string; title: string; body: string }) {
+  return (
+    <div className="bg-white/70 rounded-2xl p-5 sm:p-6 border border-warm-gray-light/30 hover:border-terracotta/30 transition-colors h-full">
+      <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">{emoji}</div>
+      <h3 className="font-display text-xl mb-2">{title}</h3>
+      <p className="text-warm-gray text-sm leading-relaxed">{body}</p>
     </div>
   )
 }
@@ -249,30 +284,32 @@ interface PriceCardProps {
 function PriceCard({ name, price, cadence, tagline, features, cta, ctaTo, accent }: PriceCardProps) {
   return (
     <div
-      className={`rounded-2xl p-6 sm:p-8 border ${
+      className={`rounded-2xl p-6 sm:p-8 border h-full flex flex-col ${
         accent
-          ? 'bg-ink text-white border-ink shadow-[0_24px_60px_-24px_rgba(0,0,0,0.4)] md:scale-105'
+          ? 'bg-ink text-white border-ink shadow-[0_24px_60px_-24px_rgba(0,0,0,0.4)] lg:scale-[1.03] relative'
           : 'bg-white border-warm-gray-light/30'
       }`}
     >
       <div className="font-mono text-xs uppercase tracking-wider opacity-70">{name}</div>
       <div className="flex items-end gap-1 mt-2">
-        <span className="font-display text-4xl">{price}</span>
-        {cadence && <span className={`text-sm ${accent ? 'opacity-70' : 'text-warm-gray'} mb-1`}>{cadence}</span>}
+        <span className="font-display text-4xl sm:text-5xl">{price}</span>
+        {cadence && (
+          <span className={`text-sm ${accent ? 'opacity-70' : 'text-warm-gray'} mb-1.5`}>{cadence}</span>
+        )}
       </div>
       <p className={`mt-2 text-sm ${accent ? 'opacity-80' : 'text-warm-gray'}`}>{tagline}</p>
-      <ul className={`mt-6 space-y-2 text-sm ${accent ? '' : 'text-ink'}`}>
+      <ul className="mt-5 space-y-2 text-sm flex-1">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2">
-            <span className="text-terracotta mt-0.5">✓</span>
+            <span className={`mt-0.5 ${accent ? 'text-terracotta-light' : 'text-terracotta'}`}>✓</span>
             <span>{f}</span>
           </li>
         ))}
       </ul>
       <Link
         to={ctaTo}
-        className={`block mt-8 text-center px-5 py-3 rounded-xl font-medium transition-all ${
-          accent ? 'bg-terracotta text-white hover:bg-terracotta-dark' : 'bg-ink text-white hover:bg-ink/80'
+        className={`block mt-6 text-center px-5 py-3 rounded-xl font-medium transition-all ${
+          accent ? 'bg-terracotta text-white hover:bg-terracotta-dark' : 'bg-ink text-white hover:bg-ink/85'
         }`}
       >
         {cta}
@@ -281,14 +318,14 @@ function PriceCard({ name, price, cadence, tagline, features, cta, ctaTo, accent
   )
 }
 
-function Faq({ q, children }: { q: string; children: React.ReactNode }) {
+function Faq({ q, a }: { q: string; a: string }) {
   return (
     <details className="group bg-white/70 rounded-2xl px-5 py-4 border border-warm-gray-light/30 [&_summary]:cursor-pointer">
       <summary className="font-display text-lg flex items-center justify-between gap-4">
-        {q}
+        <span>{q}</span>
         <span className="text-terracotta transition-transform group-open:rotate-45">+</span>
       </summary>
-      <p className="text-warm-gray text-sm mt-3 leading-relaxed">{children}</p>
+      <p className="text-warm-gray text-sm mt-3 leading-relaxed">{a}</p>
     </details>
   )
 }
