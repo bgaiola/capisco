@@ -27,24 +27,15 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html {
-  height: 100%;
-  /* Use dynamic viewport on mobile so the bottom tab bar isn't covered by Safari UI */
-  height: 100dvh;
-  overflow: hidden;
-}
-
-body {
-  height: 100%;
-  height: 100dvh;
-  overflow: hidden;
+html, body {
+  min-height: 100%;
   font-family: var(--font-body);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overscroll-behavior-y: contain;
+}
 
-  /* Soft warm gradient background */
+body {
   background-color: var(--color-crema);
   background-image:
     radial-gradient(ellipse 80% 60% at 20% 0%, rgba(196, 96, 58, 0.08), transparent 60%),
@@ -53,11 +44,9 @@ body {
   background-attachment: fixed;
 }
 
-#root {
-  height: 100%;
-  height: 100dvh;
-  overflow: hidden;
-}
+/* The /app route locks scrolling to its own container — body wears a class to opt in. */
+body.app-shell, body.app-shell html { overflow: hidden; height: 100dvh; overscroll-behavior-y: contain; }
+body.app-shell #root { height: 100dvh; overflow: hidden; }
 
 /* Subtle paper grain overlay */
 body::before {
@@ -178,6 +167,24 @@ body::before {
   input, textarea, select {
     font-size: 16px !important;
   }
+}
+
+/* ===== Form inputs (used on auth/account/signup pages) ===== */
+.input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(181, 174, 165, 0.45);
+  background: white;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input::placeholder { color: var(--color-warm-gray-light); }
+.input:focus {
+  outline: none;
+  border-color: var(--color-terracotta);
+  box-shadow: 0 0 0 3px rgba(196, 96, 58, 0.18);
 }
 
 /* Honor user's reduced-motion preference */

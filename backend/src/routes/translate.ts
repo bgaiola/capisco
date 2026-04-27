@@ -1,5 +1,9 @@
 import { Router } from 'express'
+import { z } from 'zod'
 import translateModule from 'google-translate-api-x'
+import { requireAuth } from '../auth/middleware.js'
+import { canTranslate, recordUsage } from '../services/usage.js'
+import { bumpStreak } from '../services/streak.js'
 
 // google-translate-api-x exports differ between ESM/CJS — normalize
 const translate = (typeof translateModule === 'function'
@@ -12,8 +16,7 @@ const translate = (typeof translateModule === 'function'
 const router = Router()
 
 /**
- * Dicionário de notas culturais para enriquecer a resposta.
- * Mapeamos padrões por par de idiomas.
+ * Cultural notes dictionary to enrich the response.
  */
 const CULTURAL_NOTES: Record<string, Array<{ pattern: RegExp; note: string }>> = {
   'pt→it': [
@@ -53,38 +56,49 @@ const GENERIC_TIPS: Record<string, string> = {
 }
 
 function getCulturalNote(originalText: string, from: string, to: string): string {
-  // Try exact pair first, then any pair ending with 'to'
   const pairKey = `${from}→${to}`
   const notes = CULTURAL_NOTES[pairKey]
   if (notes) {
     for (const { pattern, note } of notes) {
-      if (pattern.test(originalText)) {
-        return note
-      }
+      if (pattern.test(originalText)) return note
     }
   }
   return GENERIC_TIPS[from] || GENERIC_TIPS['en']
 }
 
-router.post('/translate', async (req, res) => {
+const TranslateBody = z.object({
+  text: z.string().min(1).max(2_000),
+  from: z.string().min(2).max(5).default('pt'),
+  to: z.string().min(2).max(5).default('it'),
+})
+
+router.post('/translate', requireAuth, async (req, res) => {
+  const parsed = TranslateBody.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'invalid_input', message: 'Field "text" is required (max 2000 chars).' })
+    return
+  }
+  const { text, from, to } = parsed.data
+
+  const gate = canTranslate(req.user!.id, req.user!.tier)
+  if (!gate.ok) {
+    res.status(429).json({ error: 'quota_exceeded', message: gate.reason })
+    return
+  }
+
   try {
-    const { text, from = 'pt', to = 'it' } = req.body
-
-    if (!text || typeof text !== 'string') {
-      res.status(400).json({ error: 'Campo "text" é obrigatório' })
-      return
-    }
-
     const result = await translate(text, { from, to })
-
-    const traducao = result.text
-    const notas = getCulturalNote(text, from, to)
-
-    res.json({ traducao, notas })
+    recordUsage(req.user!.id, 'translate', 1)
+    bumpStreak(req.user!.id)
+    res.json({
+      traducao: result.text,
+      notas: getCulturalNote(text, from, to),
+    })
   } catch (error) {
     console.error('Translation error:', error)
     res.status(500).json({
-      error: error instanceof Error ? error.message : 'Erro interno ao traduzir',
+      error: 'translation_failed',
+      message: error instanceof Error ? error.message : 'Translation error',
     })
   }
 })

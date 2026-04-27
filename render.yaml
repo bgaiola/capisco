@@ -10,7 +10,28 @@ services:
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
+      # Required — for voice cloning + TTS. Set in Render dashboard.
       - key: ELEVENLABS_API_KEY
         sync: false
+
+      # Required — auto-generated unique secret per environment.
+      - key: JWT_SECRET
+        generateValue: true
+
       - key: NODE_ENV
         value: production
+
+      # Public URL of the deployed app (Render will inject this).
+      - key: APP_URL
+        sync: false
+
+      # Stripe billing — leave blank for now (paywalls will show
+      # "billing not configured" gracefully). Add later when ready.
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_BASIC
+        sync: false
+      - key: STRIPE_PRICE_PRO
+        sync: false

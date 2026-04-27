@@ -72,7 +72,10 @@ export default function PartnerOnboarding({
     setError(null)
 
     try {
-      const result = await cloneVoice(`CAPPISCO Partner (${partnerLang.englishName})`, audioBlob)
+      const result = await cloneVoice(audioBlob, {
+        label: 'partner',
+        langSpeechCode: partnerLang.speechCode,
+      })
       const partner: ConversationPartner = {
         voiceId: result.voiceId,
         name: t.partner,

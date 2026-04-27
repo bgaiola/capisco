@@ -66,7 +66,7 @@ export default function VoiceOnboarding({
     setError(null)
 
     try {
-      const result = await cloneVoice('CAPPISCO User', audioBlob)
+      const result = await cloneVoice(audioBlob, { label: 'self' })
       setVoiceId(result.voiceId)
 
       const previewPhrase = PREVIEW_PHRASES[targetLang.code] ?? "Hello, it's me!"

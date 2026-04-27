@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import VoiceOnboarding from './components/VoiceOnboarding'
 import PartnerOnboarding from './components/PartnerOnboarding'
 import LanguageSelector from './components/LanguageSelector'
@@ -11,10 +12,14 @@ import HelpModal from './components/HelpModal'
 import HelpButton from './components/HelpButton'
 import SettingsSheet from './components/SettingsSheet'
 import SettingsButton from './components/SettingsButton'
+import PaywallModal from './components/paywall/PaywallModal'
+import UpgradeBanner from './components/paywall/UpgradeBanner'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
 import { useAudioPlayer } from './hooks/useAudioPlayer'
 import { translateText } from './services/claude'
 import { synthesizeSpeech, speakWithFallback } from './services/elevenlabs'
+import { ApiError } from './services/api'
+import { useAuth, hasTier } from './contexts/AuthContext'
 import {
   findLang,
   loadLanguagePair,
@@ -48,7 +53,12 @@ import type {
   ConversationTurn,
 } from './types'
 
+type PaywallFeature = 'voice-clone' | 'talk-mode' | 'unlimited' | 'phrase-packs'
+
 function App() {
+  const { user, refresh } = useAuth()
+  const navigate = useNavigate()
+
   const [langPair, setLangPair] = useState<LanguagePair>(loadLanguagePair)
   const [showLangSelector, setShowLangSelector] = useState(() => !hasStoredLanguagePair())
   const t = useMemo(() => getStrings(langPair.native.code), [langPair.native.code])
@@ -72,6 +82,11 @@ function App() {
 
   const [history, setHistory] = useState<Translation[]>([])
   const [playingId, setPlayingId] = useState<string | null>(null)
+
+  const [paywall, setPaywall] = useState<PaywallFeature | null>(null)
+
+  const isBasic = hasTier(user, 'basic')
+  const isPro = hasTier(user, 'pro')
 
   const {
     isListening,
@@ -107,27 +122,47 @@ function App() {
     setConversation(loadConversation())
   }, [])
 
+  // Lock body scroll while in the app shell so the bottom tab bar isn't pushed.
   useEffect(() => {
-    if (!showLangSelector) {
-      const profile = loadVoiceProfile()
-      if (!profile && !wasVoiceSkipped()) setShowOnboarding(true)
-    }
-  }, [showLangSelector])
+    document.body.classList.add('app-shell')
+    return () => document.body.classList.remove('app-shell')
+  }, [])
 
   useEffect(() => {
-    if (history.length > 0) saveHistory(history)
-  }, [history])
+    if (!showLangSelector) {
+      // Only show onboarding if user can actually clone (Basic+).
+      // Free users see the upgrade banner instead.
+      const profile = loadVoiceProfile()
+      if (!profile && !wasVoiceSkipped() && isBasic) setShowOnboarding(true)
+    }
+  }, [showLangSelector, isBasic])
+
+  // Trim history for free tier (server enforces translate limit; client trims persistence).
+  useEffect(() => {
+    if (history.length > 0) {
+      const cap = isBasic ? Number.POSITIVE_INFINITY : 20
+      const trimmed = cap === Number.POSITIVE_INFINITY ? history : history.slice(0, cap)
+      saveHistory(trimmed)
+    }
+  }, [history, isBasic])
 
   useEffect(() => {
     saveConversation(conversation)
   }, [conversation])
+
+  // Auto-flip away from Talk tab if user is not Pro
+  useEffect(() => {
+    if (activeTab === 'conversation' && !isPro) {
+      setPaywall('talk-mode')
+      setActiveTab('voice')
+    }
+  }, [activeTab, isPro])
 
   // Auto-open the help modal first time the user visits each mode
   useEffect(() => {
     if (showLangSelector || showOnboarding || showPartnerOnboarding) return
     const tutKey = `tab_${activeTab}`
     if (!hasSeenTutorial(tutKey)) {
-      // Avoid showing the help modal on the empty-history view (it has no tutorial)
       if (activeTab === 'history') {
         markTutorialSeen(tutKey)
         return
@@ -152,12 +187,13 @@ function App() {
   const handleOnboardingComplete = (voiceId: string) => {
     const profile: VoiceProfile = {
       voiceId,
-      name: 'CAPPISCO User',
+      name: user?.name ?? user?.email ?? 'CAPPISCO User',
       createdAt: Date.now(),
     }
     saveVoiceProfile(profile)
     setVoiceProfile(profile)
     setShowOnboarding(false)
+    void refresh() // refresh quota counters
   }
 
   const handleSkipOnboarding = () => {
@@ -167,6 +203,10 @@ function App() {
   }
 
   const handleResetVoice = () => {
+    if (!isBasic) {
+      setPaywall('voice-clone')
+      return
+    }
     clearVoiceProfile()
     setVoiceProfile(null)
     setShowOnboarding(true)
@@ -176,6 +216,7 @@ function App() {
     savePartner(newPartner)
     setPartner(newPartner)
     setShowPartnerOnboarding(false)
+    void refresh()
   }
 
   const handleChangePartner = () => {
@@ -186,6 +227,10 @@ function App() {
   }
 
   const handleReconfigurePartner = () => {
+    if (!isPro) {
+      setPaywall('talk-mode')
+      return
+    }
     setShowPartnerOnboarding(true)
   }
 
@@ -198,6 +243,31 @@ function App() {
   const handleChangeLanguages = () => {
     setShowLangSelector(true)
   }
+
+  const handleApiError = useCallback(
+    (err: unknown): boolean => {
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          navigate('/login?next=/app', { replace: true })
+          return true
+        }
+        if (err.code === 'upgrade_required') {
+          setPaywall(err.message.includes('Pro') ? 'talk-mode' : 'voice-clone')
+          return true
+        }
+        if (err.code === 'quota_exceeded') {
+          setPaywall('unlimited')
+          return true
+        }
+        if (err.code === 'subscription_inactive') {
+          navigate('/account', { replace: true })
+          return true
+        }
+      }
+      return false
+    },
+    [navigate],
+  )
 
   const processTranslation = useCallback(
     async (text: string) => {
@@ -220,7 +290,7 @@ function App() {
 
         setStep('synthesizing')
         try {
-          if (voiceProfile) {
+          if (voiceProfile && isBasic) {
             const audioBlob = await synthesizeSpeech(result.traducao, voiceProfile.voiceId)
             translation.audioUrl = URL.createObjectURL(audioBlob)
             setStep('playing')
@@ -230,7 +300,8 @@ function App() {
             setStep('playing')
             await speakWithFallback(result.traducao, langPair.target.ttsCode)
           }
-        } catch {
+        } catch (err) {
+          if (handleApiError(err)) return
           setUsedFallback(true)
           setStep('playing')
           try {
@@ -242,12 +313,18 @@ function App() {
 
         setHistory((prev) => [translation, ...prev])
         setStep('done')
+        // Refresh quota / streak counters in the background
+        void refresh()
       } catch (err) {
+        if (handleApiError(err)) {
+          setStep('idle')
+          return
+        }
         setErrorMsg(err instanceof Error ? err.message : 'Unknown error')
         setStep('error')
       }
     },
-    [voiceProfile, play, langPair],
+    [voiceProfile, isBasic, play, langPair, refresh, handleApiError],
   )
 
   useEffect(() => {
@@ -285,16 +362,20 @@ function App() {
     if (translation.audioUrl) {
       play(translation.audioUrl)
       setTimeout(() => setPlayingId(null), 3000)
-    } else if (voiceProfile) {
+    } else if (voiceProfile && isBasic) {
       synthesizeSpeech(translation.translatedText, voiceProfile.voiceId)
         .then((blob) => {
           play(blob)
           setTimeout(() => setPlayingId(null), 3000)
         })
-        .catch(() => {
-          speakWithFallback(translation.translatedText, langPair.target.ttsCode).finally(() =>
-            setPlayingId(null),
-          )
+        .catch((err) => {
+          if (!handleApiError(err)) {
+            speakWithFallback(translation.translatedText, langPair.target.ttsCode).finally(() =>
+              setPlayingId(null),
+            )
+          } else {
+            setPlayingId(null)
+          }
         })
     } else {
       speakWithFallback(translation.translatedText, langPair.target.ttsCode).finally(() =>
@@ -307,10 +388,14 @@ function App() {
     if (!currentTranslation) return
     if (currentTranslation.audioUrl) {
       play(currentTranslation.audioUrl)
-    } else if (voiceProfile) {
+    } else if (voiceProfile && isBasic) {
       synthesizeSpeech(currentTranslation.translatedText, voiceProfile.voiceId)
         .then((blob) => play(blob))
-        .catch(() => speakWithFallback(currentTranslation.translatedText, langPair.target.ttsCode))
+        .catch((err) => {
+          if (!handleApiError(err)) {
+            speakWithFallback(currentTranslation.translatedText, langPair.target.ttsCode)
+          }
+        })
     } else {
       speakWithFallback(currentTranslation.translatedText, langPair.target.ttsCode)
     }
@@ -344,12 +429,20 @@ function App() {
     )
   }
 
-  const tabItems: { id: AppTab; label: string; icon: string }[] = [
+  const tabItems: { id: AppTab; label: string; icon: string; locked?: boolean }[] = [
     { id: 'voice', label: t.tabVoice, icon: '🎤' },
-    { id: 'conversation', label: t.tabConversation, icon: '💬' },
+    { id: 'conversation', label: t.tabConversation, icon: '💬', locked: !isPro },
     { id: 'text', label: t.tabText, icon: '✏️' },
     { id: 'history', label: t.tabHistory, icon: '📜' },
   ]
+
+  const onTabClick = (id: AppTab, locked?: boolean) => {
+    if (locked) {
+      setPaywall('talk-mode')
+      return
+    }
+    setActiveTab(id)
+  }
 
   const statusLabels: Record<TranslationStep, string> = {
     idle: '',
@@ -380,8 +473,14 @@ function App() {
     <div className="h-full flex flex-col max-w-lg mx-auto relative">
       <header className="px-4 sm:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:pb-4 shrink-0 relative">
         <div className="flex items-start justify-between gap-2">
-          {/* spacer to keep title centered between two buttons */}
-          <div className="w-9 shrink-0" />
+          <Link
+            to="/"
+            className="w-9 h-9 grid place-items-center rounded-full text-warm-gray hover:text-ink hover:bg-warm-gray/10 transition-colors text-base"
+            aria-label="Home"
+            title="Home"
+          >
+            ←
+          </Link>
           <div className="flex-1 text-center">
             <h1 className="font-display text-3xl sm:text-4xl text-ink tracking-tight">CAPPISCO</h1>
             <button
@@ -393,12 +492,17 @@ function App() {
             <div className="flex items-center justify-center gap-2 mt-1">
               <span
                 className={`inline-block w-1.5 h-1.5 rounded-full ${
-                  voiceProfile ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-warm-gray-light'
+                  voiceProfile && isBasic ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-warm-gray-light'
                 }`}
               />
               <span className="font-mono text-[10px] text-warm-gray">
-                {voiceProfile ? t.clonedVoice : t.systemVoice}
+                {voiceProfile && isBasic ? t.clonedVoice : t.systemVoice}
               </span>
+              {user && (
+                <span className="font-mono text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-warm-gray/10 text-warm-gray">
+                  {user.tier}
+                </span>
+              )}
             </div>
           </div>
           <div className="shrink-0">
@@ -407,20 +511,24 @@ function App() {
         </div>
       </header>
 
+      <UpgradeBanner />
+
       {/* Desktop tabs */}
       <nav className="hidden sm:flex px-6 gap-1 mb-6 shrink-0 items-center">
         {tabItems.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-3 px-3 rounded-xl font-body text-sm font-medium transition-all cursor-pointer ${
+            onClick={() => onTabClick(tab.id, tab.locked)}
+            className={`flex-1 py-3 px-3 rounded-xl font-body text-sm font-medium transition-all cursor-pointer relative ${
               activeTab === tab.id
                 ? 'bg-terracotta text-white shadow-[0_8px_24px_-12px_rgba(196,96,58,0.6)]'
                 : 'text-warm-gray hover:bg-warm-gray/10'
             }`}
+            title={tab.locked ? 'Pro plan required' : undefined}
           >
             <span className="mr-1.5">{tab.icon}</span>
             {tab.label}
+            {tab.locked && <span className="ml-1 text-[10px]">🔒</span>}
           </button>
         ))}
         {tutorial && (
@@ -502,7 +610,7 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'conversation' && (
+        {activeTab === 'conversation' && isPro && (
           <ConversationMode
             myLanguage={langPair.native}
             myVoice={voiceProfile}
@@ -587,13 +695,14 @@ function App() {
           {tabItems.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex flex-col items-center py-2 pt-3 cursor-pointer transition-colors touch-target ${
+              onClick={() => onTabClick(tab.id, tab.locked)}
+              className={`flex-1 flex flex-col items-center py-2 pt-3 cursor-pointer transition-colors touch-target relative ${
                 activeTab === tab.id ? 'text-terracotta' : 'text-warm-gray'
               }`}
             >
               <span className="text-xl leading-none">{tab.icon}</span>
               <span className="text-[10px] font-medium mt-1">{tab.label}</span>
+              {tab.locked && <span className="absolute top-1 right-3 text-[8px]">🔒</span>}
             </button>
           ))}
         </div>
@@ -620,6 +729,13 @@ function App() {
         onReconfigurePartner={handleReconfigurePartner}
         onRemovePartner={handleRemovePartner}
         onChangeLanguages={handleChangeLanguages}
+      />
+
+      <PaywallModal
+        open={paywall !== null}
+        onClose={() => setPaywall(null)}
+        feature={paywall ?? 'voice-clone'}
+        currentTier={user?.tier ?? 'free'}
       />
     </div>
   )

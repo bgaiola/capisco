@@ -1,37 +1,59 @@
 import { Router } from 'express'
+import { z } from 'zod'
+import { config } from '../config.js'
+import { requireAuth, requireTier } from '../auth/middleware.js'
+import { canSynthesize, recordUsage } from '../services/usage.js'
+import { db } from '../db/index.js'
 
 const router = Router()
 
-router.post('/synthesize', async (req, res) => {
+const SynthBody = z.object({
+  text: z.string().min(1).max(5_000),
+  voiceId: z.string().min(1).max(64),
+})
+
+router.post('/synthesize', requireAuth, requireTier('basic'), async (req, res) => {
+  const parsed = SynthBody.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'invalid_input', message: 'Invalid input (max 5000 chars).' })
+    return
+  }
+  const { text, voiceId } = parsed.data
+
+  // Ensure this voiceId belongs to the user — prevents using another user's clone.
+  const owned = db
+    .prepare('SELECT id FROM voice_clones WHERE user_id = ? AND voice_id = ?')
+    .get(req.user!.id, voiceId)
+  if (!owned) {
+    res.status(403).json({ error: 'forbidden', message: 'This voice does not belong to your account.' })
+    return
+  }
+
+  const gate = canSynthesize(req.user!.id, req.user!.tier, text.length)
+  if (!gate.ok) {
+    res.status(429).json({ error: 'quota_exceeded', message: gate.reason })
+    return
+  }
+
+  if (!config.elevenLabsKey) {
+    res.status(503).json({ error: 'service_unavailable', message: 'Voice synthesis is not configured.' })
+    return
+  }
+
   try {
-    const { text, voiceId } = req.body
-
-    if (!text || !voiceId) {
-      res.status(400).json({ error: 'Campos "text" e "voiceId" são obrigatórios' })
-      return
-    }
-
-    if (!process.env.ELEVENLABS_API_KEY) {
-      res.status(500).json({ error: 'ELEVENLABS_API_KEY não configurada' })
-      return
-    }
-
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'xi-api-key': process.env.ELEVENLABS_API_KEY,
+          'xi-api-key': config.elevenLabsKey,
           Accept: 'audio/mpeg',
         },
         body: JSON.stringify({
           text,
           model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.85,
-          },
+          voice_settings: { stability: 0.5, similarity_boost: 0.85 },
         }),
       },
     )
@@ -40,25 +62,28 @@ router.post('/synthesize', async (req, res) => {
       const errorData = await response.json().catch(() => ({}))
       console.error('ElevenLabs TTS error:', errorData)
       res.status(response.status).json({
-        error: errorData.detail?.message || 'Erro ao sintetizar áudio',
+        error: 'synth_failed',
+        message: errorData.detail?.message || 'Synthesis error',
       })
       return
     }
 
-    // Send the audio as a proper buffer response
     const arrayBuffer = await response.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
+
+    recordUsage(req.user!.id, 'synthesize', text.length)
 
     res.set({
       'Content-Type': 'audio/mpeg',
       'Content-Length': String(buffer.length),
+      'Cache-Control': 'private, no-store',
     })
-
     res.send(buffer)
   } catch (error) {
     console.error('Synthesize error:', error)
     res.status(500).json({
-      error: error instanceof Error ? error.message : 'Erro interno ao sintetizar',
+      error: 'synth_failed',
+      message: error instanceof Error ? error.message : 'Internal error',
     })
   }
 })

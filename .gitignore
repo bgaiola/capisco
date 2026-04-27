@@ -31,3 +31,13 @@ backend/package-lock.json
 
 # Duplicate files
 *lock 2*
+
+# Local SQLite database (per-developer / per-server data)
+backend/data/
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+data/
+*.db
+*.db-shm
+*.db-wal
