@@ -80,7 +80,7 @@ router.post('/translate', requireAuth, async (req, res) => {
   }
   const { text, from, to } = parsed.data
 
-  const gate = canTranslate(req.user!.id, req.user!.tier)
+  const gate = await canTranslate(req.user!.id, req.user!)
   if (!gate.ok) {
     res.status(429).json({ error: 'quota_exceeded', message: gate.reason })
     return
@@ -88,8 +88,8 @@ router.post('/translate', requireAuth, async (req, res) => {
 
   try {
     const result = await translate(text, { from, to })
-    recordUsage(req.user!.id, 'translate', 1)
-    bumpStreak(req.user!.id)
+    await recordUsage(req.user!.id, 'translate', 1)
+    await bumpStreak(req.user!.id)
     res.json({
       traducao: result.text,
       notas: getCulturalNote(text, from, to),

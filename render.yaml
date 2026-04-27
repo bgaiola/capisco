@@ -35,3 +35,15 @@ services:
         sync: false
       - key: STRIPE_PRICE_PRO
         sync: false
+
+      # Persistent database — set to a Postgres URL (Neon free tier works great).
+      # When unset, the backend falls back to a local SQLite file (NOT persistent
+      # on Render's free plan — usage data wipes on every restart).
+      - key: DATABASE_URL
+        sync: false
+
+      # Open-beta switch: set to "basic" or "pro" to grant free users that tier's
+      # capabilities transparently — no paywall, no Stripe needed. Remove (or
+      # leave blank) to re-enable the regular paywall.
+      - key: BETA_FREE_ACCESS
+        value: pro

@@ -20,7 +20,9 @@ export const config = {
   cookieSecure: process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production',
   appUrl: process.env.APP_URL ?? 'http://localhost:5173',
 
-  // Database
+  // Database — when DATABASE_URL is set (postgres://), use Postgres.
+  // Otherwise fall back to a local SQLite file for zero-config dev.
+  databaseUrl: process.env.DATABASE_URL ?? '',
   databasePath: process.env.DATABASE_PATH ?? './data/cappisco.db',
 
   // External APIs
@@ -36,6 +38,15 @@ export const config = {
   freeDailyTranslations: Number(process.env.FREE_DAILY_TRANSLATIONS ?? 5),
   basicMonthlySynthChars: Number(process.env.BASIC_MONTHLY_SYNTH_CHARS ?? 50_000),
   proMonthlySynthChars: Number(process.env.PRO_MONTHLY_SYNTH_CHARS ?? 250_000),
+
+  // Open-beta override: when set, free users transparently get the listed tier's
+  // capabilities (clone, Talk mode, etc.) without paying. Removing this env var
+  // re-enables the paywall instantly. Allowed values: 'basic' | 'pro' | unset.
+  betaFreeAccess: ((): 'basic' | 'pro' | null => {
+    const v = process.env.BETA_FREE_ACCESS?.toLowerCase()
+    if (v === 'basic' || v === 'pro') return v
+    return null
+  })(),
 
   // Marketing (optional)
   gaMeasurementId: optional('VITE_GA_MEASUREMENT_ID'),

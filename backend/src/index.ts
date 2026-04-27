@@ -107,6 +107,8 @@ app.get('/api/public-config', (_req, res) => {
   res.json({
     billingEnabled: !!config.stripeSecretKey,
     voiceEnabled: !!config.elevenLabsKey,
+    betaOpen: config.betaFreeAccess !== null,
+    betaTier: config.betaFreeAccess,
     pricing: {
       basicPriceId: config.stripeBasicPriceId ?? null,
       proPriceId: config.stripeProPriceId ?? null,

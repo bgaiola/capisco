@@ -22,6 +22,12 @@ export interface AuthUser {
   email: string
   name: string | null
   tier: Tier
+  /**
+   * Tier the user effectively has *right now* (honors open-beta override).
+   * Always >= `tier`. Use this for UI gating; use `tier` for billing UI.
+   */
+  effectiveTier?: Tier
+  betaOpen?: boolean
   status: 'active' | 'canceled' | 'past_due'
   stripe_customer_id: string | null
   stripe_subscription_id: string | null

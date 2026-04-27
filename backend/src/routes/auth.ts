@@ -2,7 +2,7 @@ import { Router } from 'express'
 import crypto from 'crypto'
 import { z } from 'zod'
 import rateLimit from 'express-rate-limit'
-import { db, type DbUser, toSafeUser } from '../db/index.js'
+import { queryOne, execute, type DbUser, toSafeUser } from '../db/index.js'
 import { hashPassword, verifyPassword } from '../auth/passwords.js'
 import { signToken } from '../auth/jwt.js'
 import { SESSION_COOKIE, requireAuth } from '../auth/middleware.js'
@@ -10,6 +10,7 @@ import { ensureReferralCode, findUserIdByReferralCode } from '../services/referr
 import { config, isProd } from '../config.js'
 import { getQuotaSnapshot } from '../services/usage.js'
 import { getStreak } from '../services/streak.js'
+import { effectiveTier, isOpenBeta } from '../services/tier.js'
 
 const router = Router()
 
@@ -56,21 +57,32 @@ function newSessionId(): string {
   return crypto.randomBytes(24).toString('hex')
 }
 
-function createSession(userId: number, userAgent: string | undefined, ip: string | undefined): string {
+async function createSession(
+  userId: number,
+  userAgent: string | undefined,
+  ip: string | undefined,
+): Promise<string> {
   const id = newSessionId()
   const now = Date.now()
-  db.prepare(
+  await execute(
     `INSERT INTO sessions (id, user_id, expires_at, user_agent, ip_address, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-  ).run(id, userId, now + SESSION_MS, userAgent ?? null, ip ?? null, now)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [id, userId, now + SESSION_MS, userAgent ?? null, ip ?? null, now],
+  )
   return id
 }
 
-function userPayload(u: DbUser) {
+async function userPayload(u: DbUser) {
   const safe = toSafeUser(u)
-  const quota = getQuotaSnapshot(u.id, u.tier)
-  const streak = getStreak(u.id)
-  return { ...safe, quota, streak }
+  const [quota, streak] = await Promise.all([getQuotaSnapshot(u.id, u), getStreak(u.id)])
+  return {
+    ...safe,
+    id: Number(safe.id),
+    effectiveTier: effectiveTier(u),
+    betaOpen: isOpenBeta(),
+    quota,
+    streak,
+  }
 }
 
 router.post('/auth/signup', signupLimiter, async (req, res) => {
@@ -81,32 +93,35 @@ router.post('/auth/signup', signupLimiter, async (req, res) => {
   }
   const { email, password, name, referralCode } = parsed.data
 
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email)
+  const existing = await queryOne<{ id: number | string }>('SELECT id FROM users WHERE email = $1', [email])
   if (existing) {
     res.status(409).json({ error: 'email_taken', message: 'An account already exists for this email.' })
     return
   }
 
-  const referrerId = referralCode ? findUserIdByReferralCode(referralCode) : null
+  const referrerId = referralCode ? await findUserIdByReferralCode(referralCode) : null
   const hash = await hashPassword(password)
   const now = Date.now()
 
-  const result = db
-    .prepare(
-      `INSERT INTO users (email, password_hash, name, tier, status, referred_by, created_at, updated_at)
-       VALUES (?, ?, ?, 'free', 'active', ?, ?, ?)`,
-    )
-    .run(email, hash, name ?? null, referrerId, now, now)
+  const result = await execute(
+    `INSERT INTO users (email, password_hash, name, tier, status, referred_by, created_at, updated_at)
+     VALUES ($1, $2, $3, 'free', 'active', $4, $5, $6) RETURNING id`,
+    [email, hash, name ?? null, referrerId, now, now],
+  )
 
-  const userId = Number(result.lastInsertRowid)
-  ensureReferralCode(userId)
+  const userId = Number(result.insertedId)
+  await ensureReferralCode(userId)
 
-  const sid = createSession(userId, req.header('user-agent') ?? undefined, req.ip)
+  const sid = await createSession(userId, req.header('user-agent') ?? undefined, req.ip)
   const token = signToken({ sub: userId, sid })
   res.cookie(SESSION_COOKIE, token, cookieOpts)
 
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as DbUser
-  res.status(201).json({ user: userPayload(user) })
+  const user = await queryOne<DbUser>('SELECT * FROM users WHERE id = $1', [userId])
+  if (!user) {
+    res.status(500).json({ error: 'internal', message: 'User not found after signup.' })
+    return
+  }
+  res.status(201).json({ user: await userPayload({ ...user, id: Number(user.id) }) })
 })
 
 router.post('/auth/login', loginLimiter, async (req, res) => {
@@ -116,7 +131,7 @@ router.post('/auth/login', loginLimiter, async (req, res) => {
     return
   }
   const { email, password } = parsed.data
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as DbUser | undefined
+  const user = await queryOne<DbUser>('SELECT * FROM users WHERE email = $1', [email])
   if (!user) {
     res.status(401).json({ error: 'invalid_credentials', message: 'Invalid email or password.' })
     return
@@ -126,24 +141,29 @@ router.post('/auth/login', loginLimiter, async (req, res) => {
     res.status(401).json({ error: 'invalid_credentials', message: 'Invalid email or password.' })
     return
   }
-  const sid = createSession(user.id, req.header('user-agent') ?? undefined, req.ip)
-  const token = signToken({ sub: user.id, sid })
+  const userId = Number(user.id)
+  const sid = await createSession(userId, req.header('user-agent') ?? undefined, req.ip)
+  const token = signToken({ sub: userId, sid })
   res.cookie(SESSION_COOKIE, token, cookieOpts)
-  res.json({ user: userPayload(user) })
+  res.json({ user: await userPayload({ ...user, id: userId }) })
 })
 
-router.post('/auth/logout', (req, res) => {
+router.post('/auth/logout', async (req, res) => {
   const sid = req.sessionId
   if (sid) {
-    db.prepare('DELETE FROM sessions WHERE id = ?').run(sid)
+    await execute('DELETE FROM sessions WHERE id = $1', [sid])
   }
   res.clearCookie(SESSION_COOKIE, { ...cookieOpts, maxAge: 0 })
   res.json({ ok: true })
 })
 
-router.get('/auth/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user!.id) as DbUser
-  res.json({ user: userPayload(user) })
+router.get('/auth/me', requireAuth, async (req, res) => {
+  const user = await queryOne<DbUser>('SELECT * FROM users WHERE id = $1', [req.user!.id])
+  if (!user) {
+    res.status(404).json({ error: 'not_found' })
+    return
+  }
+  res.json({ user: await userPayload({ ...user, id: Number(user.id) }) })
 })
 
 export { router as authRoute }

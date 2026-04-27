@@ -2,7 +2,8 @@ import { Router } from 'express'
 import multer from 'multer'
 import { config } from '../config.js'
 import { requireAuth, requireTier } from '../auth/middleware.js'
-import { db } from '../db/index.js'
+import { query, execute } from '../db/index.js'
+import { effectiveTier } from '../services/tier.js'
 
 const router = Router()
 
@@ -34,7 +35,7 @@ router.post(
         res.status(400).json({ error: 'invalid_input', message: 'label must be "self" or "partner".' })
         return
       }
-      if (label === 'partner' && req.user!.tier !== 'pro') {
+      if (label === 'partner' && effectiveTier(req.user!) !== 'pro') {
         res.status(402).json({
           error: 'upgrade_required',
           message: 'Cloning a partner voice requires the Pro plan.',
@@ -55,22 +56,17 @@ router.post(
       }
 
       // Per-user limits: 1 self for basic, 2 (self + partner) for pro.
-      const existing = db
-        .prepare('SELECT id, label FROM voice_clones WHERE user_id = ? AND label = ?')
-        .all(req.user!.id, label) as Array<{ id: number; label: string }>
-
       // If a clone with the same label already exists, replace it (delete on ElevenLabs).
+      const existing = await query<{ id: number | string; voice_id: string }>(
+        'SELECT id, voice_id FROM voice_clones WHERE user_id = $1 AND label = $2',
+        [req.user!.id, label],
+      )
       for (const v of existing) {
-        const old = db
-          .prepare('SELECT voice_id FROM voice_clones WHERE id = ?')
-          .get(v.id) as { voice_id: string } | undefined
-        if (old) {
-          await fetch(`https://api.elevenlabs.io/v1/voices/${old.voice_id}`, {
-            method: 'DELETE',
-            headers: { 'xi-api-key': config.elevenLabsKey },
-          }).catch(() => {})
-        }
-        db.prepare('DELETE FROM voice_clones WHERE id = ?').run(v.id)
+        await fetch(`https://api.elevenlabs.io/v1/voices/${v.voice_id}`, {
+          method: 'DELETE',
+          headers: { 'xi-api-key': config.elevenLabsKey },
+        }).catch(() => {})
+        await execute('DELETE FROM voice_clones WHERE id = $1', [Number(v.id)])
       }
 
       const formData = new FormData()
@@ -102,10 +98,11 @@ router.post(
       const data = (await response.json()) as { voice_id: string }
       const langSpeechCode = String(req.body?.langSpeechCode ?? '').slice(0, 16) || null
 
-      db.prepare(
+      await execute(
         `INSERT INTO voice_clones (user_id, voice_id, label, lang_speech_code, created_at)
-         VALUES (?, ?, ?, ?, ?)`,
-      ).run(req.user!.id, data.voice_id, label, langSpeechCode, Date.now())
+         VALUES ($1, $2, $3, $4, $5)`,
+        [req.user!.id, data.voice_id, label, langSpeechCode, Date.now()],
+      )
 
       res.json({ voiceId: data.voice_id, label })
     } catch (error) {

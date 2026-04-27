@@ -84,7 +84,9 @@ export function useTier(): 'free' | 'basic' | 'pro' {
 
 export function hasTier(user: AuthUser | null, min: 'basic' | 'pro'): boolean {
   if (!user) return false
-  if (user.status !== 'active') return false
   const order = { free: 0, basic: 1, pro: 2 } as const
-  return order[user.tier] >= order[min]
+  const eff = user.effectiveTier ?? user.tier
+  // Real paid tiers must be active. Beta-promoted free users are always allowed.
+  if (eff === user.tier && user.tier !== 'free' && user.status !== 'active') return false
+  return order[eff] >= order[min]
 }

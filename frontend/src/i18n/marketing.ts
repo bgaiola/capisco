@@ -201,6 +201,8 @@ export interface MarketingStrings {
   bannerBasic: string
   bannerSeePlans: string
   bannerUpgrade: string
+  bannerBetaTitle: string
+  bannerBetaBody: string
 
   // Legal
   legalLastUpdated: string
@@ -463,6 +465,8 @@ const en: MarketingStrings = {
   bannerBasic: 'Talk mode',
   bannerSeePlans: 'See plans →',
   bannerUpgrade: 'Upgrade →',
+  bannerBetaTitle: 'Open beta',
+  bannerBetaBody: 'all features unlocked, free during the beta',
 
   legalLastUpdated: 'Last updated: today.',
   privacyTitle: 'Privacy',
@@ -740,6 +744,8 @@ const pt: MarketingStrings = {
   bannerBasic: 'Modo conversa',
   bannerSeePlans: 'Ver planos →',
   bannerUpgrade: 'Upgrade →',
+  bannerBetaTitle: 'Beta aberto',
+  bannerBetaBody: 'todas as features liberadas grátis durante o teste',
 
   legalLastUpdated: 'Última atualização: hoje.',
   privacyTitle: 'Privacidade',
@@ -1016,6 +1022,8 @@ const es: MarketingStrings = {
   bannerBasic: 'Modo Talk',
   bannerSeePlans: 'Ver planes →',
   bannerUpgrade: 'Mejorar →',
+  bannerBetaTitle: 'Beta abierto',
+  bannerBetaBody: 'todas las funciones desbloqueadas, gratis durante el beta',
 
   legalLastUpdated: 'Última actualización: hoy.',
   privacyTitle: 'Privacidad',

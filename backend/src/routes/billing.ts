@@ -1,7 +1,7 @@
 import { Router, raw } from 'express'
 import { z } from 'zod'
 import type Stripe from 'stripe'
-import { db, type DbUser } from '../db/index.js'
+import { queryOne, execute, type DbUser } from '../db/index.js'
 import { requireAuth } from '../auth/middleware.js'
 import { config } from '../config.js'
 import { getStripe, priceIdForTier, tierForPriceId } from '../services/stripe.js'
@@ -29,21 +29,26 @@ router.post('/billing/checkout', requireAuth, async (req, res) => {
     return
   }
 
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user!.id) as DbUser
+  const user = await queryOne<DbUser>('SELECT * FROM users WHERE id = $1', [req.user!.id])
+  if (!user) {
+    res.status(404).json({ error: 'not_found' })
+    return
+  }
+  const userId = Number(user.id)
 
   let customerId = user.stripe_customer_id
   if (!customerId) {
     const customer = await stripe.customers.create({
       email: user.email,
       name: user.name ?? undefined,
-      metadata: { userId: String(user.id) },
+      metadata: { userId: String(userId) },
     })
     customerId = customer.id
-    db.prepare('UPDATE users SET stripe_customer_id = ?, updated_at = ? WHERE id = ?').run(
+    await execute('UPDATE users SET stripe_customer_id = $1, updated_at = $2 WHERE id = $3', [
       customerId,
       Date.now(),
-      user.id,
-    )
+      userId,
+    ])
   }
 
   const session = await stripe.checkout.sessions.create({
@@ -53,9 +58,9 @@ router.post('/billing/checkout', requireAuth, async (req, res) => {
     success_url: `${config.appUrl}/account?checkout=success`,
     cancel_url: `${config.appUrl}/pricing?checkout=canceled`,
     allow_promotion_codes: true,
-    client_reference_id: String(user.id),
+    client_reference_id: String(userId),
     subscription_data: {
-      metadata: { userId: String(user.id), tier: parsed.data.tier },
+      metadata: { userId: String(userId), tier: parsed.data.tier },
     },
   })
 
@@ -68,8 +73,8 @@ router.post('/billing/portal', requireAuth, async (req, res) => {
     res.status(503).json({ error: 'billing_disabled' })
     return
   }
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user!.id) as DbUser
-  if (!user.stripe_customer_id) {
+  const user = await queryOne<DbUser>('SELECT * FROM users WHERE id = $1', [req.user!.id])
+  if (!user?.stripe_customer_id) {
     res.status(400).json({ error: 'no_customer', message: 'No billing account yet.' })
     return
   }
@@ -113,7 +118,7 @@ export const stripeWebhookHandler = [
           if (!userId) break
           if (typeof session.subscription === 'string') {
             const sub = await stripe.subscriptions.retrieve(session.subscription)
-            applySubscription(userId, sub)
+            await applySubscription(userId, sub)
           }
           break
         }
@@ -123,7 +128,7 @@ export const stripeWebhookHandler = [
           const sub = event.data.object as Stripe.Subscription
           const userId = Number(sub.metadata?.userId)
           if (!userId) break
-          applySubscription(userId, sub)
+          await applySubscription(userId, sub)
           break
         }
         default:
@@ -137,7 +142,7 @@ export const stripeWebhookHandler = [
   },
 ]
 
-function applySubscription(userId: number, sub: Stripe.Subscription) {
+async function applySubscription(userId: number, sub: Stripe.Subscription) {
   const item = sub.items.data[0]
   const priceId = item?.price?.id
   const tier = sub.status === 'canceled' ? 'free' : tierForPriceId(priceId)
@@ -145,10 +150,11 @@ function applySubscription(userId: number, sub: Stripe.Subscription) {
     sub.status === 'active' || sub.status === 'trialing'
       ? 'active'
       : sub.status === 'past_due' || sub.status === 'unpaid'
-      ? 'past_due'
-      : 'canceled'
+        ? 'past_due'
+        : 'canceled'
 
-  db.prepare(
-    `UPDATE users SET tier = ?, status = ?, stripe_subscription_id = ?, updated_at = ? WHERE id = ?`,
-  ).run(tier, status, sub.id, Date.now(), userId)
+  await execute(
+    `UPDATE users SET tier = $1, status = $2, stripe_subscription_id = $3, updated_at = $4 WHERE id = $5`,
+    [tier, status, sub.id, Date.now(), userId],
+  )
 }

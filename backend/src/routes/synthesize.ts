@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { config } from '../config.js'
 import { requireAuth, requireTier } from '../auth/middleware.js'
 import { canSynthesize, recordUsage } from '../services/usage.js'
-import { db } from '../db/index.js'
+import { queryOne } from '../db/index.js'
 
 const router = Router()
 
@@ -21,15 +21,16 @@ router.post('/synthesize', requireAuth, requireTier('basic'), async (req, res) =
   const { text, voiceId } = parsed.data
 
   // Ensure this voiceId belongs to the user — prevents using another user's clone.
-  const owned = db
-    .prepare('SELECT id FROM voice_clones WHERE user_id = ? AND voice_id = ?')
-    .get(req.user!.id, voiceId)
+  const owned = await queryOne(
+    'SELECT id FROM voice_clones WHERE user_id = $1 AND voice_id = $2',
+    [req.user!.id, voiceId],
+  )
   if (!owned) {
     res.status(403).json({ error: 'forbidden', message: 'This voice does not belong to your account.' })
     return
   }
 
-  const gate = canSynthesize(req.user!.id, req.user!.tier, text.length)
+  const gate = await canSynthesize(req.user!.id, req.user!, text.length)
   if (!gate.ok) {
     res.status(429).json({ error: 'quota_exceeded', message: gate.reason })
     return
@@ -71,7 +72,7 @@ router.post('/synthesize', requireAuth, requireTier('basic'), async (req, res) =
     const arrayBuffer = await response.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    recordUsage(req.user!.id, 'synthesize', text.length)
+    await recordUsage(req.user!.id, 'synthesize', text.length)
 
     res.set({
       'Content-Type': 'audio/mpeg',

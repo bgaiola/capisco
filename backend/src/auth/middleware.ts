@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express'
 import { verifyToken } from './jwt.js'
-import { db, type DbUser, toSafeUser, type SafeUser } from '../db/index.js'
+import { queryOne, execute, type DbUser, toSafeUser, type SafeUser } from '../db/index.js'
+import { effectiveTier } from '../services/tier.js'
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -20,30 +21,35 @@ export function readBearer(req: Request): string | null {
   return null
 }
 
-function loadUser(userId: number, sessionId: string): SafeUser | null {
-  const session = db
-    .prepare('SELECT id, user_id, expires_at FROM sessions WHERE id = ?')
-    .get(sessionId) as { id: string; user_id: number; expires_at: number } | undefined
+async function loadUser(userId: number, sessionId: string): Promise<SafeUser | null> {
+  const session = await queryOne<{ id: string; user_id: number | string; expires_at: number | string }>(
+    'SELECT id, user_id, expires_at FROM sessions WHERE id = $1',
+    [sessionId],
+  )
   if (!session) return null
-  if (session.user_id !== userId) return null
-  if (session.expires_at < Date.now()) {
-    db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId)
+  if (Number(session.user_id) !== userId) return null
+  if (Number(session.expires_at) < Date.now()) {
+    await execute('DELETE FROM sessions WHERE id = $1', [sessionId])
     return null
   }
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as DbUser | undefined
+  const user = await queryOne<DbUser>('SELECT * FROM users WHERE id = $1', [userId])
   if (!user) return null
-  return toSafeUser(user)
+  return toSafeUser({ ...user, id: Number(user.id) })
 }
 
-export function attachUser(req: Request, _res: Response, next: NextFunction) {
+export async function attachUser(req: Request, _res: Response, next: NextFunction) {
   const token = readBearer(req)
   if (!token) return next()
   const decoded = verifyToken(token)
   if (!decoded) return next()
-  const user = loadUser(decoded.sub, decoded.sid)
-  if (user) {
-    req.user = user
-    req.sessionId = decoded.sid
+  try {
+    const user = await loadUser(decoded.sub, decoded.sid)
+    if (user) {
+      req.user = user
+      req.sessionId = decoded.sid
+    }
+  } catch (err) {
+    console.error('attachUser error:', err)
   }
   next()
 }
@@ -63,7 +69,8 @@ export function requireTier(min: 'basic' | 'pro') {
       return
     }
     const order = { free: 0, basic: 1, pro: 2 } as const
-    if (order[req.user.tier] < order[min]) {
+    const eff = effectiveTier(req.user)
+    if (order[eff] < order[min]) {
       res.status(402).json({
         error: 'upgrade_required',
         message: `This feature requires the ${min === 'pro' ? 'Pro' : 'Basic'} plan or higher.`,
@@ -72,7 +79,7 @@ export function requireTier(min: 'basic' | 'pro') {
       })
       return
     }
-    if (req.user.status !== 'active') {
+    if (req.user.tier !== 'free' && req.user.status !== 'active') {
       res.status(402).json({
         error: 'subscription_inactive',
         message: 'Your subscription is not active. Please update your billing.',

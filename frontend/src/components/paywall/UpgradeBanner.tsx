@@ -7,6 +7,19 @@ export default function UpgradeBanner() {
   const { t } = useLocale()
   if (!user || user.tier === 'pro') return null
 
+  // Open beta — celebrate instead of nudging an upgrade
+  if (user.betaOpen) {
+    return (
+      <div className="mx-4 sm:mx-6 mb-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-terracotta/15 to-gold/15 border border-terracotta/30">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs sm:text-sm">
+            🎉 <strong>{t.bannerBetaTitle}</strong> — {t.bannerBetaBody}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   if (user.tier === 'free') {
     return (
       <Link
